@@ -1,3 +1,6 @@
 [user]
 	email = nbeney@gmail.com
 	name = Nicolas Beney
+[alias]
+        log1 = log --oneline
+        log-gdo = log --graph --decorate --oneline
