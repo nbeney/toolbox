@@ -1,0 +1,6 @@
+* Set up wifi
+* sudo apt-get install etckeeper
+* raspi-config: change password
+* raspi-config: change host name
+* raspi-config: change boot options to CLI with no auto-login
+* sudo dpkg-reconfigure tzdata (to change TZ)
