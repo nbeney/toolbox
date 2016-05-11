@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Check that gdb is installed.
+gdb --version > /dev/null 2>&1 || {
+    echo "Unable to find gdb."
+    exit 1
+}
+
 function usage {
 cat << EOF
 Usage: $(basename $0) [ -p <pids> ] <old-log-file> <new-log-file>
@@ -37,9 +43,22 @@ dst=$2
 
 [ "${src}" ] || usage
 [ "${dst}" ] || usage
+
+# Check that the source file exists.
+[ -f ${src} ] || {
+    echo "File not found: ${src}"
+    exit 1
+}
+
+# Set default option values if necessary.
 [ "${pids}" ] || pids=$(fuser ${src})
 [ "${mode}" ] || mode=02102
 [ "${perm}" ] || perm=$(stat -c 0%a ${src})
+
+# Make the file paths absolute because the CWD of the processes we are going to attach to
+# may be different from the current directory.
+src=$(readlink -f ${src})
+dst=$(readlink -f ${dst})
 
 function print_gdb_script()
 {
@@ -51,6 +70,7 @@ function print_gdb_script()
     done
     echo 'call close($1)'
     echo 'detach'
+    echo 'output "***** Waiting for a few seconds... *****"'
     echo 'quit'
 }
 
@@ -69,5 +89,6 @@ for pid in ${pids}; do
             print_gdb_script ${pid}
 	    sleep 3
         ) | gdb -q -x -
+        echo
     fi
 done
