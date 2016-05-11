@@ -1,32 +1,73 @@
 #!/bin/bash
-#
-# Swap/Roll a file handle between processes.
-#
-# Posted at https://groups.google.com/forum/#!topic/alt.hackers/0ZMsMc5DvUw
-#
-# Usage:
-#
-#    fdswap.sh <old logfile>    <new logfile> [optional pids]
-#    fdswap.sh /var/log/logfile /tmp/logfile  [pids]
-#
-# Author: Robert McKay
-# Date: Tue Aug 14 13:36:35 BST 2007
 
-src=$1; shift
-dst=$1; shift
-pids=$*
+function usage {
+cat << EOF
+Usage: $(basename $0) [ -p <pids> ] <old-log-file> <new-log-file>
 
-for pid in ${pids:=$(fuser $src)}; do
-    echo "${src} has ${pid} using it..."
-    (
-	echo "attach ${pid}"
-	echo 'call open("'${dst}'", 66, 0666)'
-	for ufd in $(ls -l /proc/${pid}/fd | grep ${src}\$ | awk '{print $9;}'); do
-	    echo 'call dup2($1, '${ufd}')'
-	done
-	echo 'call close($1)'
-	echo 'detach'
-	echo 'quit'
-	sleep 3
-    ) | gdb -q -x -
+Swap/roll a file handle between processes.
+
+Options:
+    -p     Space separated list of PIDs (all the PIDs having <old-log-file> open if not specified) 
+    -M     Mode (integer) to open <new-log-file> (02102 (i.e. O_APPEND|O_CREAT|O_RDWR) if not specified)
+    -P     Permissions (integer) for <new-log-file> (the permissions of <old-log-file> if not specified)
+    -v     Verbose mode.
+    -n     Dry-run mode.
+
+The <new-log-file> will be opened using the open(path, mode, perm) system call. See man 2 open for details. The flag values
+for making mode are defined in /usr/include/bits/fcntl.h.
+EOF
+exit 1
+}
+
+while getopts ":p:M:Pvn" opt; do
+    case $opt in
+        p) pids=${OPTARG} ;;
+        M) mode=${OPTARG} ;;
+        P) perm=${OPTARG} ;;
+        v) verbose=1 ;;
+        n) dry_run=1 ;;
+        *) usage ;;
+    esac
+done
+
+shift $((${OPTIND} - 1))
+
+src=$1
+dst=$2
+
+[ "${src}" ] || usage
+[ "${dst}" ] || usage
+[ "${pids}" ] || pids=$(fuser ${src})
+[ "${mode}" ] || mode=02102
+[ "${perm}" ] || perm=$(stat -c 0%a ${src})
+
+function print_gdb_script()
+{
+    pid=$1
+    echo "attach ${pid}"
+    echo 'call open("'${dst}'", '${mode}', '${perm}')'
+    for ufd in $(ls -l /proc/${pid}/fd | grep ${src}\$ | awk '{print $9;}'); do
+	echo 'call dup2($1, '${ufd}')'
+    done
+    echo 'call close($1)'
+    echo 'detach'
+    echo 'quit'
+}
+
+for pid in ${pids}; do
+    echo -------------------------------
+    echo "${src} is used by pid ${pid} ..."
+    if [ ${dry_run} ]; then
+        echo "Would run this script in gdb:"
+        print_gdb_script ${pid}
+    else
+        if [ ${verbose} ]; then
+            echo "Running this script in gdb:"
+            print_gdb_script ${pid}
+        fi
+        (
+            print_gdb_script ${pid}
+	    sleep 3
+        ) | gdb -q -x -
+    fi
 done
