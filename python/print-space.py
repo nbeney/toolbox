@@ -14,7 +14,7 @@ DIRS = ["/dev", "/", "/dev/shm", "/run", "/run/lock", "/sys/fs/cgroup", "/boot"]
 
 DfStats = namedtuple("DfStats", "total available used used_pct")
 
-def get_space(hosts, dirs, max_workers=None):
+def get_space(hosts, dirs):
     """
     Check the free space for a list of hosts and directories.
 
@@ -30,8 +30,7 @@ def get_space(hosts, dirs, max_workers=None):
         map_ = {dir_: DfStats(*lines[idx].split()[1:5]) for idx, dir_ in enumerate(dirs, 1)}
         return (host, map_)
 
-    max_workers = max_workers or len(hosts)
-    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+    with ThreadPoolExecutor(max_workers=len(hosts)) as pool:
         futures = [pool.submit(get_space_for_one_host, host, dirs) for host in hosts]
         results = [_.result() for _ in futures]
         return dict(results)
