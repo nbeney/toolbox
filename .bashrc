@@ -114,5 +114,8 @@ fi
 
 # Added by Nicolas Beney
 
-export PATH=/home/pi/tools/bin:$PATH
+export PATH=/home/pi/tools/bin:${PATH}
 
+for dir in ~/venvs/*; do
+    alias ve-$(basename ${dir})=". ${dir}/bin/activate"
+done
