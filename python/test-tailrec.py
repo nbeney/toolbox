@@ -18,7 +18,7 @@ def timer(label):
     start = time.clock()
     yield
     end = time.clock()
-    print("{} took {} seconds".format(label, end - start))
+    print("{} took {:.4f} seconds".format(label, end - start))
     
 
 class _TailRecurseException(BaseException):
@@ -71,11 +71,11 @@ print()
 def fact_rec(n):
     return 1 if n <= 0 else n * fact_rec(n - 1)
 
-try:
-    with timer("The recursive version"):
+with timer("The recursive version"):
+    try:
         print("fact_rec(10000)     ===> {:,} digits".format(len(str(fact_rec(10000)))))
-except RuntimeError as e:
-    print("fact_rec(10000)     ===>", e)
+    except RuntimeError as e:
+        print("fact_rec(10000)     ===>", e)
 print()
 
 # Tail recursive version.
