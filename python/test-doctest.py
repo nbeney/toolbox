@@ -8,6 +8,7 @@ Use the fact function as em aexample:
 120
 """
 
+
 def fact(n):
     """
     Calculate the factorial of a positive integer number.

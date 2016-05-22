@@ -19,7 +19,7 @@ def timer(label):
     yield
     end = time.clock()
     print("{} took {:.4f} seconds".format(label, end - start))
-    
+
 
 class _TailRecurseException(BaseException):
 
@@ -52,8 +52,6 @@ def tailrec(func):
                     kwargs = e.kwargs
     return wrapper
 
-# Iterative version.
-
 
 def fact_iter(n):
     acc = 1
@@ -61,24 +59,9 @@ def fact_iter(n):
         acc *= i
     return acc
 
-with timer("The iterative version"):
-    print("fact_iter(10000)    ===> {:,} digits".format(len(str(fact_iter(10000)))))
-print()
-
-# Recursive version.
-
 
 def fact_rec(n):
     return 1 if n <= 0 else n * fact_rec(n - 1)
-
-with timer("The recursive version"):
-    try:
-        print("fact_rec(10000)     ===> {:,} digits".format(len(str(fact_rec(10000)))))
-    except RuntimeError as e:
-        print("fact_rec(10000)     ===>", e)
-print()
-
-# Tail recursive version.
 
 
 def fact_tailrec(n):
@@ -87,5 +70,22 @@ def fact_tailrec(n):
         return acc if n == 0 else fact(n - 1, n * acc)
     return fact(n, acc=1)
 
-with timer("The tail recursive version"):
-    print("fact_tailrec(10000) ===> {:,} digits".format(len(str(fact_tailrec(10000)))))
+if __name__ == "__main__":
+    with timer("The iterative version"):
+        print("fact_iter(10000)    ===> {:,} digits".format(
+            len(str(fact_iter(10000)))))
+
+    print()
+
+    with timer("The recursive version"):
+        try:
+            print("fact_rec(10000)     ===> {:,} digits".format(
+                len(str(fact_rec(10000)))))
+        except RuntimeError as e:
+            print("fact_rec(10000)     ===>", e)
+
+    print()
+
+    with timer("The tail recursive version"):
+        print("fact_tailrec(10000) ===> {:,} digits".format(
+            len(str(fact_tailrec(10000)))))
