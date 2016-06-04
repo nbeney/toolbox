@@ -22,7 +22,6 @@ def timer(label):
 
 
 class _TailRecurseException(BaseException):
-
     def __init__(self, args, kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -38,6 +37,7 @@ def tailrec(func):
     This function fails if the decorated
     function recurses in a non-tail context.
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         frame = sys._getframe()
@@ -50,6 +50,7 @@ def tailrec(func):
                 except _TailRecurseException as e:
                     args = e.args
                     kwargs = e.kwargs
+
     return wrapper
 
 
@@ -68,7 +69,9 @@ def fact_tailrec(n):
     @tailrec
     def fact(n, acc):
         return acc if n == 0 else fact(n - 1, n * acc)
+
     return fact(n, acc=1)
+
 
 if __name__ == "__main__":
     with timer("The iterative version"):
