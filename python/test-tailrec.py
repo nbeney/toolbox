@@ -12,6 +12,11 @@ import time
 from contextlib import contextmanager
 from functools import wraps
 
+from nose.tools import raises
+
+N = 10000
+EXPECTED_DIGITS = 35660
+
 
 @contextmanager
 def timer(label):
@@ -73,22 +78,32 @@ def fact_tailrec(n):
     return fact(n, acc=1)
 
 
+def test_iter():
+    assert EXPECTED_DIGITS == len(str(fact_iter(N)))
+
+
+@raises(RuntimeError)
+def test_rec():
+    fact_rec(N)
+
+
+def test_tailrec():
+    assert EXPECTED_DIGITS == len(str(fact_tailrec(N)))
+
+
 if __name__ == "__main__":
     with timer("The iterative version"):
-        print("fact_iter(10000)    ===> {:,} digits".format(
-            len(str(fact_iter(10000)))))
+        print("fact_iter({})    ===> {:,} digits".format(N, len(str(fact_iter(N)))))
 
     print()
 
     with timer("The recursive version"):
         try:
-            print("fact_rec(10000)     ===> {:,} digits".format(
-                len(str(fact_rec(10000)))))
+            print("fact_rec({})     ===> {:,} digits".format(N, len(str(fact_rec(N)))))
         except RuntimeError as e:
-            print("fact_rec(10000)     ===>", e)
+            print("fact_rec({})     ===> {}".format(N, e))
 
     print()
 
     with timer("The tail recursive version"):
-        print("fact_tailrec(10000) ===> {:,} digits".format(
-            len(str(fact_tailrec(10000)))))
+        print("fact_tailrec({}) ===> {:,} digits".format(N, len(str(fact_tailrec(N)))))
