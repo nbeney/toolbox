@@ -116,6 +116,15 @@ fi
 
 export PATH=/home/pi/tools/bin:${PATH}
 
+export PYTHONSTARTUP=/home/pi/tools/python/startup.py
+
 for dir in ~/venvs/*; do
     alias ve-$(basename ${dir})=". ${dir}/bin/activate"
 done
+
+alias s=sudo
+alias sac="sudo apt-cache"
+alias sag="sudo apt-get"
+alias ss="sudo service"
+alias sss="sudo service --status-all"
+alias sst="sudo samba-tool"
