@@ -1,9 +1,9 @@
 from utils.table import Table
 
 
-def get_table(table_elem):
+def get_table(table_elem, caption=None):
     return Table(
-        caption=get_caption(table_elem),
+        caption=caption or get_caption(table_elem),
         headers=get_headers(table_elem),
         rows=get_rows(table_elem),
     )
