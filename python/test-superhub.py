@@ -1,9 +1,13 @@
-from superhub.pages import DeviceConnectionStatusPage, DhcpReservationPage, IpFilteringPage, MacFilteringPage, \
+from superhub.requests.pages import DeviceConnectionStatusPage, DhcpReservationPage, IpFilteringPage, MacFilteringPage, \
     PortBlockingPage, PortForwardingPage, PortTriggeringPage
-from superhub.router import Router, IPADDR, PASSWORD
+from superhub.requests.router import Router
+from utils.password_vault import PasswordVault
 
 if __name__ == "__main__":
-    router = Router(IPADDR, PASSWORD)
+    ipaddr = "192.168.0.1"
+    password = PasswordVault.get()
+
+    router = Router(ipaddr, password)
     router.login()
 
     DeviceConnectionStatusPage(router).dump()
