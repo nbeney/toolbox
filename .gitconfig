@@ -4,3 +4,5 @@
 [alias]
         log1 = log --oneline
         log-gdo = log --graph --decorate --oneline
+[push]
+	default = simple
