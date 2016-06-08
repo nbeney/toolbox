@@ -1,12 +1,21 @@
-#!python
+import re
 import sys
 from contextlib import contextmanager
+from fnmatch import fnmatch
 
 import click
 
 from superhub.requests.pages import DeviceConnectionStatusPage, DhcpReservationPage, IpFilteringPage, MacFilteringPage, \
     PortBlockingPage, PortForwardingPage, PortTriggeringPage
 from superhub.requests.router import Router, SuperHubError
+
+
+def validate_mac_address(ctx, param, value):
+    value = value.lower()
+    hex_digit_pair = "[0-9A-F]{2}"
+    if not re.match(":".join([hex_digit_pair] * 6), value):
+        raise click.BadParameter("MAC addresses must be in format xx:xx:xx:xx:xx:xx")
+    return value
 
 
 @contextmanager
@@ -16,7 +25,7 @@ def get_router(ctx):
         router.login()
         yield router
     except SuperHubError as e:
-        sys.exit("ERROR: " + str(e))
+        sys.exit("Error: " + str(e))
     finally:
         if not ctx.keep_logged_in:
             router.logout()
@@ -88,7 +97,7 @@ def list_mac(ctx):
 
 @mac.command(name="add", help="Add a new entry to the MAC Filter table.")
 @click.argument("device-name")
-@click.argument("mac-address")
+@click.argument("mac-address", callback=validate_mac_address)
 @click.argument("enable", type=bool)
 @pass_context
 def add_mac(ctx, device_name, mac_address, enable):
@@ -110,7 +119,7 @@ def enable_mac(ctx, device_name):
     apply_mac(ctx, device_name, MacFilteringPage.enable_entry)
 
 
-@mac.command(name="disable", help="Enable an entry in the MAC Filter table.")
+@mac.command(name="disable", help="Disable an entry in the MAC Filter table.")
 @click.argument("device-name", nargs=-1)
 @pass_context
 def disable_mac(ctx, device_name):
@@ -120,10 +129,10 @@ def disable_mac(ctx, device_name):
 def apply_mac(ctx, device_name, method):
     with get_router(ctx) as router:
         page = MacFilteringPage(router)
-        if device_name == ["*"]:
-            device_name = page.entries.keys()
-        for _ in device_name:
-            method(page, _)
+        dns = set(entry.device_name for entry in page.entries.values() if
+                  any(fnmatch(entry.device_name, _) for _ in device_name))
+        for dn in dns:
+            method(page, dn)
         page.save()
 
 

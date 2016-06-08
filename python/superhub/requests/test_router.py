@@ -46,7 +46,6 @@ def test_IpFilteringPage():
     page = IpFilteringPage(router)
     assert page.attached_devices.caption == "Attached Devices"
     assert page.ip_filter_list.caption == "IP Filter List"
-    assert page.timed_access.caption == "Timed Access"
     page.dump()
 
 
@@ -56,7 +55,6 @@ def test_MacFilteringPage():
     page = MacFilteringPage(router)
     assert page.attached_devices.caption == "Attached Devices"
     assert page.mac_filter_list.caption == "MAC Filter List"
-    assert page.timed_access.caption == "Timed Access"
     page.dump()
 
 

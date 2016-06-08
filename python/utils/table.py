@@ -21,14 +21,14 @@ class Table:
             return any(len(str(_)) > 0 for _ in row)
         return any(has(_) for _ in self.rows)
 
-    def pretty_print(self):
+    def pretty_print(self, caption=True):
         n = len(self.headers)
         widths = [max([len(str(_[idx])) for _ in [self.headers] + self.rows]) for idx in range(n)]
         fmt1 = "+-" + "-+-".join(["{:-<%d}" % _ for _ in widths]) + "-+"
-        fmt2 = "| " + " | ".join(["{: <%d}" % _ for _ in widths]) + " |"
+        fmt2 = "| " + " | ".join(["{!s: <%d}" % _ for _ in widths]) + " |"
         sep = fmt1.format(*([""] * n))
 
-        if self.caption:
+        if self.caption and caption:
             print(self.caption)
         print(sep)
         print(fmt2.format(*self.headers))
