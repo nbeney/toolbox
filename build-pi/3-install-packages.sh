@@ -1,10 +1,25 @@
-#!/bin/bash -x
+#!/bin/bash
 
-sudo apt-get install dnsutils
-sudo apt-get install emacs24-nox
-sudo apt-get install htop
-sudo apt-get install lsof
-sudo apt-get install nmap
-sudo apt-get install pdns-server pdns-recursor
-sudo apt-get install silversearcher-ag
-sudo apt-get install tmux
+function run()
+{
+    PACKAGE=$1
+    echo ======================================================================
+    echo ${PACKAGE}
+    echo ======================================================================
+    echo sudo apt-get install ${PACKAGE}
+}
+
+run attr
+run dnsutils
+run emacs24-nox
+run htop
+run lsof
+run nmap
+run pdns-server pdns-recursor
+run samba
+run samba-common
+run samba-common-bin
+run silversearcher-ag
+run telnet
+run tightvncserver
+run tmux

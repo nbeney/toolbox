@@ -1,6 +1,16 @@
 * Set up wifi
+
 * sudo apt-get install etckeeper
-* raspi-config: change password
-* raspi-config: change host name
-* raspi-config: change boot options to CLI with no auto-login
+
+* change pi's password: passwd <raspberry>, <new>, <new>
+
+* change host name: sudo hostname <name>
+
 * sudo dpkg-reconfigure tzdata (to change TZ)
+
+* git clone https://github.com/nbeney/tools
+
+* ln -s tools/.bashrc
+  ln -s tools/.gitconfig
+  ln -s tools/.tmux
+

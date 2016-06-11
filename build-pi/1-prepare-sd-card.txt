@@ -1,0 +1,13 @@
+* SDFormatter V4.0
+  Options: format type=quick, format size adjustment=on
+  Format / Ok / Ok
+
+* Extract berryboot.zip onto SD card
+
+* Insert SD card in Pi and start up
+
+* BerryBoot, choose Debian Jessie Raspbian (2016.05)
+
+* BerryBoot, activate console (Ctrl-Alt-F2 to activate)
+
+* BerryBoot, exit
