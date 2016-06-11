@@ -6,7 +6,7 @@ function run()
     echo ======================================================================
     echo ${PACKAGE}
     echo ======================================================================
-    echo sudo apt-get install ${PACKAGE}
+    sudo apt-get install ${PACKAGE}
 }
 
 run attr
@@ -17,7 +17,6 @@ run lsof
 run nmap
 run pdns-server pdns-recursor
 run samba
-run samba-common
 run samba-common-bin
 run silversearcher-ag
 run telnet
