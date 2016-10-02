@@ -135,61 +135,68 @@ alias sst="sudo samba-tool"
 #======================================================================================================================
 
 # git branch autocompletion
-if [ -f ~/dotfiles/.git-completion.bash ]; then
-    . ~/dotfiles/.git-completion.bash
+if [ -f ~/.git-completion.bash ]; then
+    . ~/.git-completion.bash
 fi
+
+RESET='$(tput sgr0)'
+BOLD='$(tput bold)'
+
+FG_BLACK='$(tput setaf 0)'
+FG_RED='$(tput setaf 1)'
+FG_GREEN='$(tput setaf 2)'
+FG_YELLOW='$(tput setaf 3)'
+FG_BLUE='$(tput setaf 4)'
+FG_PURPLE='$(tput setaf 5)'
+FG_CYAN='$(tput setaf 6)'
+FG_WHITE='$(tput setaf 7)'
 
 set_prompt()
 {
-    local last_cmd=$?
+    local last_rc=$?
 
-    local RESET='$(tput sgr0)'
-    local BOLD='$(tput bold)'
-
-    local BLACK='$(tput setaf 0)'
-    local RED='$(tput setaf 1)'
-    local GREEN='$(tput setaf 2)'
-    local YELLOW='$(tput setaf 3)'
-    local BLUE='$(tput setaf 4)'
-    local PURPLE='$(tput setaf 5)'
-    local CYAN='$(tput setaf 6)'
-    local WHITE='$(tput setaf 7)'
-
-    PS1="${WHITE}"
+    PS1="${FG_WHITE}"
 
     # Current user
-    PS1+="${YELLOW}\u${WHITE}@"
+    PS1+="${FG_YELLOW}\u${FG_WHITE}@"
 
     # Host name (short)
-    PS1+="${GREEN}\h "
+    PS1+="${FG_GREEN}\h"
+
+    # Current level
+    if [ -f /prod/cbtech/bin/cbcfg ]; then
+	local LEVEL=${/prod/cbtech/bin/cbcfg LEVEL}
+	PS1+="${FG_WHITE}[${FG_PURPLE}${LEVEL}${FG_WHITE}] "
+    else
+	PS1+=" "
+    fi
 
     # Current directory
-    PS1+="${CYAN}\w "
+    PS1+="${FG_CYAN}\w "
 
     # Current branch
-    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    local BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
     if [ -n "${BRANCH}" ]; then
-	DIRTY=$(git status --porcelain 2>/dev/null)
+	local DIRTY=$(git status --porcelain 2>/dev/null)
 	if [ -n "${DIRTY}" ]; then
-	    PS1+="${WHITE}(${RED}${BRANCH}${WHITE}) "
+	    PS1+="${FG_WHITE}(${FG_RED}${BRANCH}${FG_WHITE}) "
 	else
-	    PS1+="${WHITE}(${YELLOW}${BRANCH}${WHITE}) "
+	    PS1+="${FG_WHITE}(${FG_YELLOW}${BRANCH}${FG_WHITE}) "
 	fi
     fi
 
     
     # Number of background jobs
     if [ -n "$(jobs | egrep -v ' Done | Exit ')" ]; then
-        PS1+="${PURPLE}J=\j "
+        PS1+="${FG_PURPLE}J=\j "
     fi
 
     # Return code of last command
-    if [[ ${last_cmd} != 0 ]]; then
-        PS1+="${RED}RC=${last_cmd} "
+    if [[ ${last_rc} != 0 ]]; then
+        PS1+="${FG_RED}RC=${last_rc} "
     fi
 
-    PS1+="\n${WHITE}\$ "
+    PS1+="\n${FG_WHITE}\$ "
 }
 
 PROMPT_COMMAND='set_prompt'
-
