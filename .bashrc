@@ -131,7 +131,6 @@ alias ss="sudo service"
 alias sss="sudo service --status-all"
 alias sst="sudo samba-tool"
 
-
 #======================================================================================================================
 # From https://gitlab.com/gitforteams/gitforteams/blob/master/resources/sample-bash_profile.md
 #======================================================================================================================
@@ -153,26 +152,37 @@ FG_PURPLE='$(tput setaf 5)'
 FG_CYAN='$(tput setaf 6)'
 FG_WHITE='$(tput setaf 7)'
 
+function tlc_start_timer
+{
+    TLC_START_SECONDS=${TLC_START_SECONDS:-${SECONDS}}
+}
+
+function tlc_stop_timer
+{
+    TLC_DURATION=$((${SECONDS} - ${TLC_START_SECONDS}))
+    unset TLC_START_SECONDS
+}
+
+trap tlc_start_timer DEBUG
+
 set_prompt()
 {
     local last_rc=$?
+    tlc_stop_timer
 
-    PS1="${FG_WHITE}\D{%Y%m%d-%H:%M:%S} "
+    PS1="${FG_PURPLE}\D{%Y%m%d-%H:%M:%S} "
 
-    # Current user
-    PS1+="${FG_YELLOW}\u${FG_WHITE}@"
-
-    # Host name (short)
-    PS1+="${FG_GREEN}\h"
-
-    # Current level
+    # Current user, host and level
     if [ -f /prod/cbtech/bin/cbcfg ]; then
 	local LEVEL=$(/prod/cbtech/bin/cbcfg LEVEL)
-	local SITE=$(/prod/cbtech/bin/cbcfg SITE)
-	local COMPANY=$(/prod/cbtech/bin/cbcfg COMPANY)
-	PS1+="${FG_WHITE}[${FG_PURPLE}${LEVEL}/${SITE}/${COMPANY}${FG_WHITE}] "
+        if [ "${LEVEL}" == "dev" ]; then
+            local color=${FG_GREEN}
+        else
+            local color=${FG_RED}
+        fi
+	PS1+="${FG_CYAN}\u${FG_WHITE}@${FG_CYAN}\h ${FG_WHITE}[${color}${LEVEL}${FG_WHITE}] "
     else
-	PS1+=" "
+        PS1+="${FG_CYAN}\u${FG_WHITE}@${FG_CYAN}\h "
     fi
 
     # Current directory
@@ -183,21 +193,30 @@ set_prompt()
     if [ -n "${BRANCH}" ]; then
 	local DIRTY=$(git status --porcelain 2>/dev/null)
 	if [ -n "${DIRTY}" ]; then
-	    PS1+="${FG_WHITE}(${FG_RED}${BRANCH}${FG_WHITE}) "
+	    PS1+="${FG_WHITE}(${FG_RED}${BRANCH}*${FG_WHITE}) "
 	else
-	    PS1+="${FG_WHITE}(${FG_YELLOW}${BRANCH}${FG_WHITE}) "
+	    PS1+="${FG_WHITE}(${FG_GREEN}${BRANCH}${FG_WHITE}) "
 	fi
     fi
     
-    # Number of background jobs
-    if [ -n "$(jobs | egrep -v ' Done | Exit | Terminated ')" ]; then
-        PS1+="${FG_PURPLE}J=\j "
-    fi
-
     # Return code of last command
-    if [[ ${last_rc} != 0 ]]; then
-        PS1+="${FG_RED}RC=${last_rc} "
+    if [[ ${last_rc} == 0 ]]; then
+        local color=${FG_GREEN}
+    else
+        local color=${FG_RED}
     fi
+    PS1+="${FG_WHITE}RC=${color}${last_rc} "
+
+    # Last command duration
+    PS1+="${FG_WHITE}T=${FG_YELLOW}${TLC_DURATION}s "
+    
+    # Number of background jobs
+    if [ -z "$(jobs | egrep -v ' Done | Exit | Terminated ')" ]; then
+        local color=${FG_GREEN}
+    else
+        local color=${FG_RED}
+    fi
+    PS1+="${FG_WHITE}J=${color}\j "
 
     PS1+="\n${FG_WHITE}\$ "
 }
