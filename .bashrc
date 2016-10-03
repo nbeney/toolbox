@@ -167,7 +167,7 @@ set_prompt()
 
     # Current level
     if [ -f /prod/cbtech/bin/cbcfg ]; then
-	local LEVEL=${/prod/cbtech/bin/cbcfg LEVEL}
+	local LEVEL=$(/prod/cbtech/bin/cbcfg LEVEL)
 	PS1+="${FG_WHITE}[${FG_PURPLE}${LEVEL}${FG_WHITE}] "
     else
 	PS1+=" "
