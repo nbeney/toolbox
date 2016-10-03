@@ -192,11 +192,13 @@ set_prompt()
     local BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
     if [ -n "${BRANCH}" ]; then
 	local DIRTY=$(git status --porcelain 2>/dev/null)
-	if [ -n "${DIRTY}" ]; then
-	    PS1+="${FG_WHITE}(${FG_RED}${BRANCH}*${FG_WHITE}) "
+	if [ -z "${DIRTY}" ]; then
+            local color=${FG_GREEN}
 	else
-	    PS1+="${FG_WHITE}(${FG_GREEN}${BRANCH}${FG_WHITE}) "
+            local color=${FG_RED}
+            BRANCH+="*"
 	fi
+	PS1+="${FG_WHITE}(${color}${BRANCH}${FG_WHITE}) "
     fi
     
     # Return code of last command
