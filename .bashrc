@@ -188,10 +188,9 @@ set_prompt()
 	    PS1+="${FG_WHITE}(${FG_YELLOW}${BRANCH}${FG_WHITE}) "
 	fi
     fi
-
     
     # Number of background jobs
-    if [ -n "$(jobs | egrep -v ' Done | Exit ')" ]; then
+    if [ -n "$(jobs | egrep -v ' Done | Exit | Terminated ')" ]; then
         PS1+="${FG_PURPLE}J=\j "
     fi
 
