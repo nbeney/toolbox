@@ -157,7 +157,7 @@ set_prompt()
 {
     local last_rc=$?
 
-    PS1="${FG_WHITE}"
+    PS1="${FG_WHITE}\D{%Y%m%d-%H:%M:%S} "
 
     # Current user
     PS1+="${FG_YELLOW}\u${FG_WHITE}@"
@@ -168,7 +168,9 @@ set_prompt()
     # Current level
     if [ -f /prod/cbtech/bin/cbcfg ]; then
 	local LEVEL=$(/prod/cbtech/bin/cbcfg LEVEL)
-	PS1+="${FG_WHITE}[${FG_PURPLE}${LEVEL}${FG_WHITE}] "
+	local SITE=$(/prod/cbtech/bin/cbcfg SITE)
+	local COMPANY=$(/prod/cbtech/bin/cbcfg COMPANY)
+	PS1+="${FG_WHITE}[${FG_PURPLE}${LEVEL}/${SITE}/${COMPANY}${FG_WHITE}] "
     else
 	PS1+=" "
     fi
