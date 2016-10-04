@@ -132,6 +132,26 @@ alias sss="sudo service --status-all"
 alias sst="sudo samba-tool"
 
 #======================================================================================================================
+# SSH
+#======================================================================================================================
+
+alias ssh-info='env | sort | grep SSH ; echo "----------"; ps auxxx | grep ssh-agent || echo "ssh-agent not running"; echo "----------"; ssh-add -l'
+
+export SSH_AGENT_ENV=~/.ssh/ssh-agent-env.$(hostname)
+
+if [ -f ${SSH_AGENT_ENV} ]; then
+    . ${SSH_AGENT_ENV}
+fi
+
+if [ -z ${SSH_AGENT_PID} ] || ! kill -0 ${SSH_AGENT_PID} 2>/dev/null; then
+    ssh-agent | grep -v echo > ${SSH_AGENT_ENV}
+    chmod 600 ${SSH_AGENT_ENV}
+    . ${SSH_AGENT_ENV}
+fi
+
+ssh-add -l | grep -q ~/.ssh/github || ssh-add ~/.ssh/github
+
+#======================================================================================================================
 # From https://gitlab.com/gitforteams/gitforteams/blob/master/resources/sample-bash_profile.md
 #======================================================================================================================
 
