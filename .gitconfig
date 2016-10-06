@@ -4,6 +4,7 @@
 [alias]
     log1 = log --oneline
     log-gdo = log --graph --decorate --oneline
+    aliases = ! ~/tools/git/list-aliases.py # some comment here
 [push]
     default = simple
 
@@ -39,16 +40,12 @@
     log-gdpa = log --graph --decorate --pretty=oneline --abbrev-commit
     log-gd1a-all = log --graph --decorate --pretty=oneline --abbrev-commit --all
     log-gpad = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
-    reset--hard-HEAD = reset --hard HEAD
 
     # Oneline, but with author and date
     log-date = log --pretty=format:'%C(yellow)%h %Cred%ad %Cblue%an%Cgreen%d %Creset%s' --date=short
 
     # Show files ignored by git:
     ign = clean -dXn
-
-[help]
-    autocorrect = 1
 
 [difftool "Kaleidoscope"]
 	cmd = ksdiff --partial-changeset --relative-path \"$MERGED\" -- \"$LOCAL\" \"$REMOTE\"
