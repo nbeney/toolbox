@@ -132,95 +132,29 @@ alias sss="sudo service --status-all"
 alias sst="sudo samba-tool"
 
 #======================================================================================================================
+# SSH
+#======================================================================================================================
+
+alias ssh-info='env | sort | grep SSH ; echo "----------"; ps auxxx | grep ssh-agent || echo "ssh-agent not running"; echo "----------"; ssh-add -l'
+
+export SSH_AGENT_ENV=~/.ssh/ssh-agent-env.$(hostname)
+
+if [ -f ${SSH_AGENT_ENV} ]; then
+    . ${SSH_AGENT_ENV}
+fi
+
+if [ -z ${SSH_AGENT_PID} ] || ! kill -0 ${SSH_AGENT_PID} 2>/dev/null; then
+    ssh-agent | grep -v echo > ${SSH_AGENT_ENV}
+    chmod 600 ${SSH_AGENT_ENV}
+    . ${SSH_AGENT_ENV}
+fi
+
+ssh-add -l | grep -q ~/.ssh/github || ssh-add ~/.ssh/github
+
+#======================================================================================================================
 # From https://gitlab.com/gitforteams/gitforteams/blob/master/resources/sample-bash_profile.md
 #======================================================================================================================
 
-# git branch autocompletion
-if [ -f ~/.git-completion.bash ]; then
-    . ~/.git-completion.bash
-fi
+[ -f ~/.git-completion.bash ] && . ~/.git-completion.bash
 
-RESET='$(tput sgr0)'
-BOLD='$(tput bold)'
-
-FG_BLACK='$(tput setaf 0)'
-FG_RED='$(tput setaf 1)'
-FG_GREEN='$(tput setaf 2)'
-FG_YELLOW='$(tput setaf 3)'
-FG_BLUE='$(tput setaf 4)'
-FG_PURPLE='$(tput setaf 5)'
-FG_CYAN='$(tput setaf 6)'
-FG_WHITE='$(tput setaf 7)'
-
-function tlc_start_timer
-{
-    TLC_START_SECONDS=${TLC_START_SECONDS:-${SECONDS}}
-}
-
-function tlc_stop_timer
-{
-    TLC_DURATION=$((${SECONDS} - ${TLC_START_SECONDS}))
-    unset TLC_START_SECONDS
-}
-
-trap tlc_start_timer DEBUG
-
-set_prompt()
-{
-    local last_rc=$?
-    tlc_stop_timer
-
-    PS1="${FG_PURPLE}\D{%Y%m%d-%H:%M:%S} "
-
-    # Current user, host and level
-    if [ -f /prod/cbtech/bin/cbcfg ]; then
-	local LEVEL=$(/prod/cbtech/bin/cbcfg LEVEL)
-        if [ "${LEVEL}" == "dev" ]; then
-            local color=${FG_GREEN}
-        else
-            local color=${FG_RED}
-        fi
-	PS1+="${FG_CYAN}\u${FG_WHITE}@${FG_CYAN}\h ${FG_WHITE}[${color}${LEVEL}${FG_WHITE}] "
-    else
-        PS1+="${FG_CYAN}\u${FG_WHITE}@${FG_CYAN}\h "
-    fi
-
-    # Current directory
-    PS1+="${FG_CYAN}\w "
-
-    # Current branch
-    local BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-    if [ -n "${BRANCH}" ]; then
-	local DIRTY=$(git status --porcelain 2>/dev/null)
-	if [ -z "${DIRTY}" ]; then
-            local color=${FG_GREEN}
-	else
-            local color=${FG_RED}
-            BRANCH+="*"
-	fi
-	PS1+="${FG_WHITE}(${color}${BRANCH}${FG_WHITE}) "
-    fi
-    
-    # Return code of last command
-    if [[ ${last_rc} == 0 ]]; then
-        local color=${FG_GREEN}
-    else
-        local color=${FG_RED}
-    fi
-    PS1+="${FG_WHITE}RC=${color}${last_rc} "
-
-    # Last command duration
-    PS1+="${FG_WHITE}T=${FG_YELLOW}${TLC_DURATION}s "
-    
-    # Number of background jobs
-    if [ -z "$(jobs | egrep -v ' Done | Exit | Terminated ')" ]; then
-        local color=${FG_GREEN}
-    else
-        local color=${FG_RED}
-    fi
-    PS1+="${FG_WHITE}J=${color}\j "
-
-    PS1+="\n${FG_WHITE}\$ "
-}
-
-PROMPT_COMMAND='set_prompt'
+[ -f ~/.bashrc.d/set_prompt ] && . ~/.bashrc.d/set_prompt
