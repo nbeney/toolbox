@@ -1,34 +1,3 @@
-ANSI_BLINK=$(tput blink)
-ANSI_BOLD=$(tput bold)
-ANSI_DIM=$(tput dim)
-ANSI_INVIS=$(tput invis)
-ANSI_RESET=$(tput sgr0)
-ANSI_REVERSE=$(tput rev)
-ANSI_STANDOUT_START=$(tput smso)
-ANSI_STANDOUT_STOP=$(tput rmso)
-ANSI_UNDER_START=$(tput smul)
-ANSI_UNDER_STOP=$(tput rmul)
-
-ANSI_FG_BLACK=$(tput setaf 0)
-ANSI_FG_RED=$(tput setaf 1)
-ANSI_FG_GREEN=$(tput setaf 2)
-ANSI_FG_YELLOW=$(tput setaf 3)
-ANSI_FG_BLUE=$(tput setaf 4)
-ANSI_FG_PURPLE=$(tput setaf 5)
-ANSI_FG_CYAN=$(tput setaf 6)
-ANSI_FG_WHITE=$(tput setaf 7)
-ANSI_FG_DEFAULT=$(tput setaf 9)
-
-ANSI_BG_BLACK=$(tput setab 0)
-ANSI_BG_RED=$(tput setab 1)
-ANSI_BG_GREEN=$(tput setab 2)
-ANSI_BG_YELLOW=$(tput setab 3)
-ANSI_BG_BLUE=$(tput setab 4)
-ANSI_BG_PURPLE=$(tput setab 5)
-ANSI_BG_CYAN=$(tput setab 6)
-ANSI_BG_WHITE=$(tput setab 7)
-ANSI_BG_DEFAULT=$(tput setab 9)
-
 function tlc_start_timer
 {
     TLC_START_SECONDS=${TLC_START_SECONDS:-${SECONDS}}
