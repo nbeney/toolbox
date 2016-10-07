@@ -1,0 +1,7 @@
+[alias]
+        aliases = ! ~/tools/git/list-aliases.py
+        difft = difftool -y
+        log1 = log --oneline
+        log-gdo = log --graph --decorate --oneline
+        statusp = ! /u/nbeney/bin/share/my-git-status+.sh
+        
