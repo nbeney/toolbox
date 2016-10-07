@@ -4,7 +4,7 @@
 [alias]
     log1 = log --oneline
     log-gdo = log --graph --decorate --oneline
-    aliases = ! ~/tools/git/list-aliases.py # some comment here
+    aliases = ! ~/toolbox/git/aliases/aliases.py
 [push]
     default = simple
 [include]
