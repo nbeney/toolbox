@@ -1,10 +1,10 @@
 # Prevent us being sourced multiple times.
-if [ "${TOOLBOX_INC_COMMON}" == "sourced" ]; then
+if [ "${TBX_INC_COMMON}" == "sourced" ]; then
     #echo "Already sourced: common.sh"
     return
 else
     #echo "Sourcing common.sh"
-    TOOLBOX_INC_COMMON="sourced"
+    TBX_INC_COMMON="sourced"
 fi
 
 # Dependencies.
@@ -14,66 +14,66 @@ fi
 # Logging
 #====================================================================
 
-declare -A LOG_LEVEL_TO_COLOR
-LOG_LEVEL_TO_COLOR[1]=${ANSI_FG_CYAN}
-LOG_LEVEL_TO_COLOR[2]=${ANSI_FG_GREEN}
-LOG_LEVEL_TO_COLOR[3]=${ANSI_FG_YELLOW}
-LOG_LEVEL_TO_COLOR[4]=${ANSI_FG_RED}
+declare -A TBX_LOG_LEVEL_TO_COLOR
+TBX_LOG_LEVEL_TO_COLOR[1]=${TBX_ANSI_FG_CYAN}
+TBX_LOG_LEVEL_TO_COLOR[2]=${TBX_ANSI_FG_GREEN}
+TBX_LOG_LEVEL_TO_COLOR[3]=${TBX_ANSI_FG_YELLOW}
+TBX_LOG_LEVEL_TO_COLOR[4]=${TBX_ANSI_FG_RED}
 
-declare -A LOG_LEVEL_TO_NAME
-LOG_LEVEL_TO_NAME[1]=DEBUG
-LOG_LEVEL_TO_NAME[2]=INFO
-LOG_LEVEL_TO_NAME[3]=WARNING
-LOG_LEVEL_TO_NAME[4]=ERROR
+declare -A TBX_LOG_LEVEL_TO_NAME
+TBX_LOG_LEVEL_TO_NAME[1]=DEBUG
+TBX_LOG_LEVEL_TO_NAME[2]=INFO
+TBX_LOG_LEVEL_TO_NAME[3]=WARNING
+TBX_LOG_LEVEL_TO_NAME[4]=ERROR
 
-declare -A LOG_NAME_TO_LEVEL
-for level in ${!LOG_LEVEL_TO_NAME[@]}; do
-    LOG_NAME_TO_LEVEL[${LOG_LEVEL_TO_NAME[${level}]}]=${level}
+declare -A TBX_LOG_NAME_TO_LEVEL
+for level in ${!TBX_LOG_LEVEL_TO_NAME[@]}; do
+    TBX_LOG_NAME_TO_LEVEL[${TBX_LOG_LEVEL_TO_NAME[${level}]}]=${level}
 done
 
 
-function __log()
+function __tbx_log()
 {
     local name=$1; shift
     local msg=$@
     
-    local level=${LOG_NAME_TO_LEVEL[${name}]}
-    local target=${LOG_NAME_TO_LEVEL[${LOG:-INFO}]}
-    local color=${LOG_LEVEL_TO_COLOR[${level}]}
+    local level=${TBX_LOG_NAME_TO_LEVEL[${name}]}
+    local target=${TBX_LOG_NAME_TO_LEVEL[${LOG:-INFO}]}
+    local color=${TBX_LOG_LEVEL_TO_COLOR[${level}]}
     if [ ${level} -ge ${target} ]; then
-	echo "${color}$(basename $0) [${name}] ${msg}${ANSI_RESET}"
+	echo "${color}$(basename -- "$0") [${name}] ${msg}${TBX_ANSI_RESET}"
     fi
 }
 
-function log_debug()
+function tbx_log_debug()
 {
-    __log DEBUG $@
+    __tbx_log DEBUG $@
 }
 
-function log_info()
+function tbx_log_info()
 {
-    __log INFO $@
+    __tbx_log INFO $@
 }
 
-function log_warning()
+function tbx_log_warning()
 {
-    __log WARNING $@
+    __tbx_log WARNING $@
 }
 
-function log_error()
+function tbx_log_error()
 {
-    __log ERROR $@
+    __tbx_log ERROR $@
 }
 
-function __test_logging()
+function __tbx_test_logging()
 {
     local OLD_LOG=${LOG}
     for LOG in DEBUG INFO WARNING ERROR; do
 	echo ================= ${LOG}
-	log_debug   "This is a log message at level DEBUG"
-	log_info    "This is a log message at level INFO"
-	log_warning "This is a log message at level WARNING"
-	log_error   "This is a log message at level ERROR"
+	tbx_log_debug   "This is a log message at level DEBUG"
+	tbx_log_info    "This is a log message at level INFO"
+	tbx_log_warning "This is a log message at level WARNING"
+	tbx_log_error   "This is a log message at level ERROR"
     done
     LOG=${OLD_LOG}
 }
@@ -94,5 +94,5 @@ function at_work()
     return $?
 }
 
-at_home && export TOOLBOX_ENV=home
-at_work && export TOOLBOX_ENV=work
+at_home && export TBX_ENV=home
+at_work && export TBX_ENV=work

@@ -162,3 +162,8 @@ ssh-add -l | grep -q ~/.ssh/github || ssh-add ~/.ssh/github
 [ -f ~/toolbox/etc/.bashrc.d/ansi.sh ] && . ~/toolbox/etc/.bashrc.d/ansi.sh
 
 [ -f ~/toolbox/etc/.bashrc.d/prompt.sh ] && . ~/toolbox/etc/.bashrc.d/prompt.sh
+
+# Export all the tbx_* and __tbx_* functions
+for x in $(declare -fp | egrep "^tbx_|^__tbx_" | cut -d' ' -f1); do
+    export -f ${x}
+done

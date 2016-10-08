@@ -1,40 +1,40 @@
 # Prevent us being sourced multiple times.
-if [ "${TOOLBOX_INC_PROMPT}" == "sourced" ]; then
+if [ "${TBX_INC_PROMPT}" == "sourced" ]; then
     #echo "Already sourced: prompt.sh"
     return
 else
     #echo "Sourcing prompt.sh"
-    TOOLBOX_INC_PROMPT="sourced"
+    TBX_INC_PROMPT="sourced"
 fi
 
 # Dependencies.
 . ~/toolbox/etc/.bashrc.d/ansi.sh
 
-function tlc_start_timer
+function __tbx_start_timer
 {
-    TOOLBOX_START_SECONDS=${TOOLBOX_START_SECONDS:-${SECONDS}}
+    TBX_START_SECONDS=${TBX_START_SECONDS:-${SECONDS}}
 }
 
-function tlc_stop_timer
+function __tbx_stop_timer
 {
-    TOOLBOX_DURATION=$((${SECONDS} - ${TOOLBOX_START_SECONDS}))
-    unset TOOLBOX_START_SECONDS
+    TBX_DURATION=$((${SECONDS} - ${TBX_START_SECONDS}))
+    unset TBX_START_SECONDS
 }
 
-trap tlc_start_timer DEBUG
+trap __tbx_start_timer DEBUG
 
-set_prompt()
+__tbx_set_prompt()
 {
     local last_rc=$?
-    tlc_stop_timer
+    __tbx_stop_timer
 
-    local RESET="\[${ANSI_RESET}\]"
-    local WHITE="\[${ANSI_FG_WHITE}\]"
-    local COL_ALERT="\[${ANSI_FG_RED}\]"
-    local COL_NORMAL="\[${ANSI_FG_GREEN}\]"
-    local COL_NEUTRAL="\[${ANSI_FG_YELLOW}\]"
-    local COL_1="\[${ANSI_FG_CYAN}\]"
-    local COL_2="\[${ANSI_FG_PURPLE}\]"
+    local RESET="\[${TBX_ANSI_RESET}\]"
+    local WHITE="\[${TBX_ANSI_FG_WHITE}\]"
+    local COL_ALERT="\[${TBX_ANSI_FG_RED}\]"
+    local COL_NORMAL="\[${TBX_ANSI_FG_GREEN}\]"
+    local COL_NEUTRAL="\[${TBX_ANSI_FG_YELLOW}\]"
+    local COL_1="\[${TBX_ANSI_FG_CYAN}\]"
+    local COL_2="\[${TBX_ANSI_FG_PURPLE}\]"
 
     PS1="\n${COL_2}\D{%Y%m%d-%H:%M:%S} "
 
@@ -76,7 +76,7 @@ set_prompt()
     PS1+="${WHITE}RC=${color}${last_rc} "
 
     # Last command duration
-    PS1+="${WHITE}T=${COL_NEUTRAL}${TOOLBOX_DURATION}s "
+    PS1+="${WHITE}T=${COL_NEUTRAL}${TBX_DURATION}s "
     
     # Number of background jobs
     if [ -z "$(jobs | egrep -v ' Done | Exit | Terminated ')" ]; then
@@ -89,4 +89,4 @@ set_prompt()
     PS1+="\n${WHITE}\$ ${RESET}"
 }
 
-PROMPT_COMMAND='set_prompt'
+PROMPT_COMMAND='__tbx_set_prompt'
