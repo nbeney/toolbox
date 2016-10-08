@@ -10,6 +10,10 @@ fi
 # Dependencies.
 . ~/toolbox/etc/.bashrc.d/ansi.sh
 
+#====================================================================
+# Logging
+#====================================================================
+
 declare -A LOG_LEVEL_TO_COLOR
 LOG_LEVEL_TO_COLOR[1]=${ANSI_FG_CYAN}
 LOG_LEVEL_TO_COLOR[2]=${ANSI_FG_GREEN}
@@ -68,6 +72,10 @@ function log_error()
 #     log_warning "This is a log message at level WARNING"
 #     log_error   "This is a log message at level ERROR"
 # done
+
+#====================================================================
+# Environment
+#====================================================================
 
 function at_home()
 {
