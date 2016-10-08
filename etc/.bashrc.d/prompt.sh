@@ -1,3 +1,15 @@
+# Prevent us being sourced multiple times.
+if [ ${TOOLBOX_INC_PROMPT:-unset} == "unset" ]; then
+    echo "Sourcing prompt.sh"
+    export TOOLBOX_INC_PROMPT=1
+else
+    echo "Already sourced: prompt.sh"
+    return
+fi
+
+# Dependencies.
+. ~/toolbox/etc/.bashrc.d/ansi.sh
+
 function tlc_start_timer
 {
     TLC_START_SECONDS=${TLC_START_SECONDS:-${SECONDS}}

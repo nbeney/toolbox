@@ -1,3 +1,12 @@
+# Prevent us being sourced multiple times.
+if [ ${TOOLBOX_INC_ANSI:-unset} == "unset" ]; then
+    echo "Sourcing ansi.sh"
+    export TOOLBOX_INC_ANSI=1
+else
+    echo "Already sourced: ansi.sh"
+    return
+fi
+
 export ANSI_BLINK=$(tput blink)
 export ANSI_BOLD=$(tput bold)
 export ANSI_DIM=$(tput dim)
