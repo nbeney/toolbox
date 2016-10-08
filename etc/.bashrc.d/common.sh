@@ -39,8 +39,9 @@ function __log()
     
     local level=${LOG_NAME_TO_LEVEL[${name}]}
     local target=${LOG_NAME_TO_LEVEL[${LOG:-INFO}]}
+    local color=${LOG_LEVEL_TO_COLOR[${level}]}
     if [ ${level} -ge ${target} ]; then
-	echo "$0 [${LOG_LEVEL_TO_COLOR[${level}]}${name}] ${msg}${ANSI_RESET}"
+	echo "${color}$0 [${name}] ${msg}${ANSI_RESET}"
     fi
 }
 
@@ -64,14 +65,18 @@ function log_error()
     __log ERROR $@
 }
 
-# # Test logging
-# for LOG in DEBUG INFO WARNING ERROR; do
-#     echo ================= ${LOG}
-#     log_debug   "This is a log message at level DEBUG"
-#     log_info    "This is a log message at level INFO"
-#     log_warning "This is a log message at level WARNING"
-#     log_error   "This is a log message at level ERROR"
-# done
+function __test_logging()
+{
+    local OLD_LOG=${LOG}
+    for LOG in DEBUG INFO WARNING ERROR; do
+	echo ================= ${LOG}
+	log_debug   "This is a log message at level DEBUG"
+	log_info    "This is a log message at level INFO"
+	log_warning "This is a log message at level WARNING"
+	log_error   "This is a log message at level ERROR"
+    done
+    LOG=${OLD_LOG}
+}
 
 #====================================================================
 # Environment
