@@ -157,6 +157,8 @@ ssh-add -l | grep -q ~/.ssh/github || ssh-add ~/.ssh/github
 
 [ -f ~/.git-completion.bash ] && . ~/.git-completion.bash
 
-[ -f ~/.bashrc.d/set_ansi ] && . ~/.bashrc.d/set_ansi
+[ -f ~/.bashrc.d/common.sh ] && . ~/.bashrc.d/common.sh
 
-[ -f ~/.bashrc.d/set_prompt ] && . ~/.bashrc.d/set_prompt
+[ -f ~/.bashrc.d/ansi.sh ] && . ~/.bashrc.d/ansi.sh
+
+[ -f ~/.bashrc.d/prompt.sh ] && . ~/.bashrc.d/prompt.sh

@@ -8,7 +8,7 @@ else
 fi
 
 # Dependencies.
-. ~/toolbox/etc/.bashrc.d/set_ansi
+. ~/toolbox/etc/.bashrc.d/ansi.sh
 
 function at_home()
 {
@@ -50,5 +50,7 @@ function log_error()
     log ERROR $@
 }
 
-at_home && log_info "I am at home"
-at_work && log_info "I am at work"
+at_home && export TOOLBOX_ENV=home
+at_work && export TOOLBOX_ENV=work
+
+log_info "I am at ${TOOLBOX_ENV}"
