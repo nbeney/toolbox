@@ -4,7 +4,7 @@ if [ "${TOOLBOX_INC_COMMON}" == "sourced" ]; then
     return
 else
     #echo "Sourcing common.sh"
-    export TOOLBOX_INC_COMMON="sourced"
+    TOOLBOX_INC_COMMON="sourced"
 fi
 
 # Dependencies.
@@ -41,7 +41,7 @@ function __log()
     local target=${LOG_NAME_TO_LEVEL[${LOG:-INFO}]}
     local color=${LOG_LEVEL_TO_COLOR[${level}]}
     if [ ${level} -ge ${target} ]; then
-	echo "${color}$0 [${name}] ${msg}${ANSI_RESET}"
+	echo "${color}$(basename $0) [${name}] ${msg}${ANSI_RESET}"
     fi
 }
 

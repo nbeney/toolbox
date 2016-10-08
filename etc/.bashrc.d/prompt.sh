@@ -4,7 +4,7 @@ if [ "${TOOLBOX_INC_PROMPT}" == "sourced" ]; then
     return
 else
     #echo "Sourcing prompt.sh"
-    export TOOLBOX_INC_PROMPT="sourced"
+    TOOLBOX_INC_PROMPT="sourced"
 fi
 
 # Dependencies.
@@ -12,13 +12,13 @@ fi
 
 function tlc_start_timer
 {
-    TLC_START_SECONDS=${TLC_START_SECONDS:-${SECONDS}}
+    TOOLBOX_START_SECONDS=${TOOLBOX_START_SECONDS:-${SECONDS}}
 }
 
 function tlc_stop_timer
 {
-    TLC_DURATION=$((${SECONDS} - ${TLC_START_SECONDS}))
-    unset TLC_START_SECONDS
+    TOOLBOX_DURATION=$((${SECONDS} - ${TOOLBOX_START_SECONDS}))
+    unset TOOLBOX_START_SECONDS
 }
 
 trap tlc_start_timer DEBUG
@@ -76,7 +76,7 @@ set_prompt()
     PS1+="${WHITE}RC=${color}${last_rc} "
 
     # Last command duration
-    PS1+="${WHITE}T=${COL_NEUTRAL}${TLC_DURATION}s "
+    PS1+="${WHITE}T=${COL_NEUTRAL}${TOOLBOX_DURATION}s "
     
     # Number of background jobs
     if [ -z "$(jobs | egrep -v ' Done | Exit | Terminated ')" ]; then

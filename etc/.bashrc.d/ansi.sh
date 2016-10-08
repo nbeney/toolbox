@@ -4,7 +4,7 @@ if [ "${TOOLBOX_INC_ANSI}" == "sourced" ]; then
     return
 else
     #echo "Sourcing ansi.sh"
-    export TOOLBOX_INC_ANSI="sourced"
+    TOOLBOX_INC_ANSI="sourced"
 fi
 
 export ANSI_BLINK=$(tput blink)

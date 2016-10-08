@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+. ~/toolbox/etc/.bashrc.d/common.sh
+
 function usage()
 {
     echo <<EOF
@@ -19,14 +21,14 @@ function do_symlink()
 
     if [ -e ${link} ]; then
 	if [ $(readlink -f ${target}) == $(readlink -f ${link}) ]; then
-	    echo "Skip link ${link} -> ${target} (already up-to-date)"
+	    log_debug "Skip link ${link} -> ${target} (already up-to-date)"
 	else
-	    echo "Skip link ${link} -> ${target} (already exting but different)"
+	    log_warning "Skip link ${link} -> ${target} (already exting but different)"
 	fi
 	return
     fi
     
-    echo "Create link ${link} -> ${target}"
+    log_info "Create link ${link} -> ${target}"
     ln -s ${target} ${link}
 }
 
@@ -45,7 +47,7 @@ function symlinks()
 
 function git_aliases()
 {
-    echo "Not yet implemented!"
+    log_error "Not yet implemented!"
 }
 
 case $1 in
