@@ -155,10 +155,10 @@ ssh-add -l | grep -q ~/.ssh/github || ssh-add ~/.ssh/github
 # From https://gitlab.com/gitforteams/gitforteams/blob/master/resources/sample-bash_profile.md
 #======================================================================================================================
 
-[ -f ~/.git-completion.bash ] && . ~/.git-completion.bash
+[ -f ~/toolbox/git/.git-completion.bash ] && . ~/toolbox/git/.git-completion.bash
 
-[ -f ~/.bashrc.d/common.sh ] && . ~/.bashrc.d/common.sh
+[ -f ~/toolbox/etc/.bashrc.d/common.sh ] && . ~/toolbox/etc/.bashrc.d/common.sh
 
-[ -f ~/.bashrc.d/ansi.sh ] && . ~/.bashrc.d/ansi.sh
+[ -f ~/toolbox/etc/.bashrc.d/ansi.sh ] && . ~/toolbox/etc/.bashrc.d/ansi.sh
 
-[ -f ~/.bashrc.d/prompt.sh ] && . ~/.bashrc.d/prompt.sh
+[ -f ~/toolbox/etc/.bashrc.d/prompt.sh ] && . ~/toolbox/etc/.bashrc.d/prompt.sh

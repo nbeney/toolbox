@@ -7,7 +7,6 @@ files := $(wildcard ~/toolbox/etc/*)
 symlinks:
 	@cd 
 	@ln -s ~/toolbox/bin
-	@ln -s ~/toolbox/git/.git-completion.bash
 	@ln -s ~/toolbox/git/.gitconfig-global .gitconfig
 	@ln -s ~/toolbox/git/.gitignore-global .gitignore
 
