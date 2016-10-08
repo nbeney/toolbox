@@ -1,10 +1,10 @@
 # Prevent us being sourced multiple times.
-if [ ${TOOLBOX_INC_COMMON:-unset} == "unset" ]; then
-    echo "Sourcing common.sh"
-    export TOOLBOX_INC_COMMON=1
-else
-    echo "Already sourced: common.sh"
+if [ "${TOOLBOX_INC_COMMON}" == "sourced" ]; then
+    #echo "Already sourced: common.sh"
     return
+else
+    #echo "Sourcing common.sh"
+    export TOOLBOX_INC_COMMON="sourced"
 fi
 
 # Dependencies.
@@ -32,7 +32,7 @@ for level in ${!LOG_LEVEL_TO_NAME[@]}; do
 done
 
 
-function log()
+function __log()
 {
     local name=$1; shift
     local msg=$@
@@ -40,28 +40,28 @@ function log()
     local level=${LOG_NAME_TO_LEVEL[${name}]}
     local target=${LOG_NAME_TO_LEVEL[${LOG:-INFO}]}
     if [ ${level} -ge ${target} ]; then
-	echo "${LOG_LEVEL_TO_COLOR[${level}]}${name}: ${msg}${ANSI_RESET}"
+	echo "$0 [${LOG_LEVEL_TO_COLOR[${level}]}${name}] ${msg}${ANSI_RESET}"
     fi
 }
 
 function log_debug()
 {
-    log DEBUG $@
+    __log DEBUG $@
 }
 
 function log_info()
 {
-    log INFO $@
+    __log INFO $@
 }
 
 function log_warning()
 {
-    log WARNING $@
+    __log WARNING $@
 }
 
 function log_error()
 {
-    log ERROR $@
+    __log ERROR $@
 }
 
 # # Test logging
