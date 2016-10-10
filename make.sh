@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/local/bin/bash
 
 function usage()
 {
@@ -45,7 +45,11 @@ function symlinks()
 
 function git_aliases()
 {
-    tbx_log_error "Not yet implemented!"
+    echo "# Include this snippet in your ~/gitconfig file."
+    echo "[alias]"
+    for script in ~/toolbox/git/aliases/*; do
+        echo "    $(basename ${script} | cut -d. -f1) = ! ${script}"
+    done
 }
 
 case $1 in
@@ -53,7 +57,7 @@ case $1 in
 	symlinks
 	;;
     git-aliases)
-	echo git_aliases
+	git_aliases
 	;;
     *)
 	usage

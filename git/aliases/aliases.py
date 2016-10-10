@@ -7,11 +7,11 @@ import subprocess
 
 
 def highlight(text):
-    return os.environ["ANSI_FG_GREEN"] + text + os.environ["ANSI_RESET"]
+    return os.environ["TBX_ANSI_FG_GREEN"] + text + os.environ["TBX_ANSI_RESET"]
 
 
 def dim(text):
-    return os.environ["ANSI_DIM"] + text + os.environ["ANSI_RESET"]
+    return os.environ["TBX_ANSI_DIM"] + text + os.environ["TBX_ANSI_RESET"]
 
 
 lines = subprocess.check_output(['git', 'config', '--get-regexp', '^alias']).splitlines()
