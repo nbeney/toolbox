@@ -82,17 +82,17 @@ function __tbx_test_logging()
 # Environment
 #====================================================================
 
-function at_home()
+function tbx_at_home()
 {
     hostname | fgrep -iq DESKTOP-2PP2G25
     return $?
 }
 
-function at_work()
+function tbx_at_work()
 {
     hostname | fgrep -iq daiwa
     return $?
 }
 
-at_home && export TBX_ENV=home
-at_work && export TBX_ENV=work
+tbx_at_home && export TBX_ENV=home
+tbx_at_work && export TBX_ENV=work
