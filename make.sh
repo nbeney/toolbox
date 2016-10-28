@@ -45,7 +45,7 @@ function symlinks()
 
 function git_aliases()
 {
-    echo "# Include this snippet in your ~/gitconfig file."
+    echo "# Include this snippet in your ~/.gitconfig file."
     echo "[alias]"
     for script in ~/toolbox/git/aliases/*; do
         echo "    $(basename ${script} | cut -d. -f1) = ! ${script}"
