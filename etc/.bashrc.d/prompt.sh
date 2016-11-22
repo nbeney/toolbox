@@ -86,6 +86,13 @@ __tbx_set_prompt()
     fi
     PS1+="${WHITE}J=${color}\j "
 
+    # Virtual env
+    local VENV=$(basename "${VIRTUAL_ENV}")
+    if [ -n "${VENV}" ]; then
+        PS1+="${WHITE}{${COL_NORMAL}${VENV}${WHITE}} "
+    fi
+
+    # Final ANSI reset.
     PS1+="\n${WHITE}\$ ${RESET}"
 }
 
