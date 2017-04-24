@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+from __future__ import print_function
+
 import io
 import sqlite3
 import unittest
@@ -29,7 +31,7 @@ def _make_tmp_file(text):
     return f.name
 
 
-class TestStreams(unittest.TestCase):
+class TestStreams_input(unittest.TestCase):
     def test_seq(self):
         res = seq(1, 2, 3, 4, 5).sum()
         assert res == 15
@@ -38,7 +40,7 @@ class TestStreams(unittest.TestCase):
         assert res == 15
 
     def test_seq_csv(self):
-        f = _make_str_file('''
+        f = _make_str_file(u'''
             a,b,c
             11,12,13
             21,22,23
@@ -48,7 +50,7 @@ class TestStreams(unittest.TestCase):
         assert res == [['a', 'b', 'c'], ['11', '12', '13'], ['21', '22', '23'], ['31', '32', '33']]
 
     def test_seq_csv_dict_reader(self):
-        f = _make_str_file('''
+        f = _make_str_file(u'''
             a,b,c
             11,12,13
             21,22,23
@@ -59,17 +61,17 @@ class TestStreams(unittest.TestCase):
                        {'a': '31', 'b': '32', 'c': '33'}]
 
     def test_seq_json_dict(self):
-        f = _make_str_file('''{"a": 1, "b": 2, "c": 3}''')
+        f = _make_str_file(u'''{"a": 1, "b": 2, "c": 3}''')
         res = seq.json(f).sorted()
         assert res == [('a', 1), ('b', 2), ('c', 3)]
 
     def test_seq_json_list(self):
-        f = _make_str_file('''[1, 2, 3]''')
+        f = _make_str_file(u'''[1, 2, 3]''')
         res = seq.json(f)
         assert res == [1, 2, 3]
 
     def test_seq_jsonl(self):
-        f = _make_str_file('''
+        f = _make_str_file(u'''
             [11, 12, 13]
             [21, 22, 23]
             [31, 32, 33]
@@ -92,7 +94,7 @@ class TestStreams(unittest.TestCase):
     def test_seq_sqlite3(self):
         conn = sqlite3.connect(':memory:')
         c = conn.cursor()
-        c.execute('''CREATE TABLE demo (color text, value real)''')
+        c.execute('''CREATE TABLE demo (color TEXT, value REAL)''')
         c.execute('''INSERT INTO demo VALUES ('red', 1)''')
         c.execute('''INSERT INTO demo VALUES ('green', 2)''')
         c.execute('''INSERT INTO demo VALUES ('blue', 3)''')
@@ -100,6 +102,10 @@ class TestStreams(unittest.TestCase):
 
         res = seq.sqlite3(conn, 'SELECT * FROM demo')
         assert res == [('red', 1), ('green', 2), ('blue', 3)]
+
+
+class TestStreams_output(unittest.TestCase):
+    pass
 
 
 class TestTransformations(unittest.TestCase):
