@@ -229,7 +229,7 @@ class TestTransformations(unittest.TestCase):
 
 
 class TestActions(unittest.TestCase):
-    def test_aggregate_func(self):
+    def test_aggregate(self):
         # func
         res = seq.range(5).aggregate(lambda curr, next: curr + next)
         assert res == 10
