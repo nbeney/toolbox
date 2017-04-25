@@ -160,7 +160,6 @@ class TestTransformations(unittest.TestCase):
 
     def test_inits(self):
         res = seq.range(5).inits()
-        print(res)
         assert res == [[0, 1, 2, 3, 4], [0, 1, 2, 3], [0, 1, 2], [0, 1], [0], []]
 
     def test_map_or_select(self):
@@ -373,9 +372,6 @@ class TestActions_conversion(unittest.TestCase):
     def test_to_set(self):
         res = seq(1, 2, 3, 2, 1).to_set()
         assert res == set([1, 2, 3])
-
-        res = seq.range(5).to_list(n=3)
-        assert res == [0, 1, 2]
 
     def test_make_string(self):
         res = seq.range(5).make_string('/')
