@@ -228,6 +228,24 @@ class TestTransformations(unittest.TestCase):
         assert res == [('red', 1), ('green', 2), ('blue', 3)]
 
 
+class TestActions_sets(unittest.TestCase):
+    def test_difference(self):
+        res = seq([1, 2, 3]).difference([3, 4, 5])
+        assert res == [1, 2]
+
+    def test_intersection(self):
+        res = seq([1, 2, 3]).intersection([3, 4, 5])
+        assert res == [3]
+
+    def test_symmetric_difference(self):
+        res = seq([1, 2, 3]).symmetric_difference([3, 4, 5])
+        assert res == [1, 2, 4, 5]
+
+    def test_union(self):
+        res = seq([1, 2, 3]).union([3, 4, 5])
+        assert res == [1, 2, 3, 4, 5]
+
+
 class TestActions(unittest.TestCase):
     def test_aggregate(self):
         # func
