@@ -228,6 +228,41 @@ class TestTransformations(unittest.TestCase):
         assert res == [('red', 1), ('green', 2), ('blue', 3)]
 
 
+class TestActions_joins(unittest.TestCase):
+    def test_inner_join(self):
+        A = [('a', 11), ('b', 12), ('c', 13)]
+        B = [('b', 22), ('c', 23), ('d', 24)]
+        res = seq(A).inner_join(B).sorted()
+        assert res == [('b', (12, 22)), ('c', (13, 23))]
+
+    def test_join(self):
+        A = [('a', 11), ('b', 12), ('c', 13)]
+        B = [('b', 22), ('c', 23), ('d', 24)]
+        seq(A).inner_join(B).sorted()
+        assert seq(A).join(B, 'inner').sorted() == seq(A).inner_join(B).sorted()
+        assert seq(A).join(B, 'left').sorted() == seq(A).left_join(B).sorted()
+        assert seq(A).join(B, 'outer').sorted() == seq(A).outer_join(B).sorted()
+        assert seq(A).join(B, 'right').sorted() == seq(A).right_join(B).sorted()
+
+    def test_left_join(self):
+        A = [('a', 11), ('b', 12), ('c', 13)]
+        B = [('b', 22), ('c', 23), ('d', 24)]
+        res = seq(A).left_join(B).sorted()
+        assert res == [('a', (11, None)), ('b', (12, 22)), ('c', (13, 23))]
+
+    def test_outer_join(self):
+        A = [('a', 11), ('b', 12), ('c', 13)]
+        B = [('b', 22), ('c', 23), ('d', 24)]
+        res = seq(A).outer_join(B).sorted()
+        assert res == [('a', (11, None)), ('b', (12, 22)), ('c', (13, 23)), ('d', (None, 24))]
+
+    def test_right_join(self):
+        A = [('a', 11), ('b', 12), ('c', 13)]
+        B = [('b', 22), ('c', 23), ('d', 24)]
+        res = seq(A).right_join(B).sorted()
+        assert res == [('b', (12, 22)), ('c', (13, 23)), ('d', (None, 24))]
+
+
 class TestActions_sets(unittest.TestCase):
     def test_difference(self):
         res = seq([1, 2, 3]).difference([3, 4, 5])
