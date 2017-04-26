@@ -106,16 +106,16 @@ class TestStreams_input(unittest.TestCase):
 
 class TestStreams_output(unittest.TestCase):
     def test_to_csv(self):
-        assert 1 == 2
+        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_csv('test.csv')
 
     def test_to_file(self):
-        assert 1 == 2
+        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_file('test.txt')
 
     def test_to_json(self):
-        assert 1 == 2
+        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_json('test.json')
 
     def test_to_jsonl(self):
-        assert 1 == 2
+        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_jsonl('test.jsonl')
 
     def test_to_pandas(self):
         assert 1 == 2
