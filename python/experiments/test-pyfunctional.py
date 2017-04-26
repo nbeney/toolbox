@@ -105,7 +105,23 @@ class TestStreams_input(unittest.TestCase):
 
 
 class TestStreams_output(unittest.TestCase):
-    pass
+    def test_to_csv(self):
+        assert 1 == 2
+
+    def test_to_file(self):
+        assert 1 == 2
+
+    def test_to_json(self):
+        assert 1 == 2
+
+    def test_to_jsonl(self):
+        assert 1 == 2
+
+    def test_to_pandas(self):
+        assert 1 == 2
+
+    def test_to_sqlite3(self):
+        assert 1 == 2
 
 
 class TestTransformations(unittest.TestCase):
@@ -154,6 +170,26 @@ class TestTransformations(unittest.TestCase):
         res = seq.range(10).filter_not(lambda x: x % 2 == 0)
         assert res == [1, 3, 5, 7, 9]
 
+    def test_flat_map(self):
+        res = seq(1, 2, 3).flat_map(lambda x: (x, x))
+        assert res == [1, 1, 2, 2, 3, 3]
+
+    def test_flatten(self):
+        res = seq([1, 2], [3, 4], [5, 6]).flatten()
+        assert res == [1, 2, 3, 4, 5, 6]
+
+    def test_group_by(self):
+        res = seq('red', 'green', 'blue', 'cyan', 'purple', 'violet').group_by(len)
+        assert res == [(3, ['red']), (4, ['blue', 'cyan']), (5, ['green']), (6, ['purple', 'violet'])]
+
+    def test_group_by_key(self):
+        res = seq((1, 'a'), (2, 'b'), (3, 'c'), (1, 'd'), (3, 'e')).group_by_key()
+        assert res == [(1, ['a', 'd']), (2, ['b']), (3, ['c', 'e'])]
+
+    def test_grouped(self):
+        res = seq(1, 2, 3, 4, 5, 6, 7, 8, 9).grouped(4).map(list)
+        assert res == [[1, 2, 3, 4], [5, 6, 7, 8], [9]]
+
     def test_init(self):
         res = seq.range(5).init()
         assert res == [0, 1, 2, 3]
@@ -169,8 +205,17 @@ class TestTransformations(unittest.TestCase):
         res = seq.range(5).select(lambda x: x ** 2)
         assert res == [0, 1, 4, 9, 16]
 
+    def test_partition(self):
+        res = seq(1, 2, 3, 4, 5).partition(lambda x: x % 2 == 0)
+        assert res == [[2, 4], [1, 3, 5]]
+
+    def test_reduce_by_key(self):
+        res = seq(('a', 1), ('b', 2), ('c', 3), ('b', 4), ('c', 5)).reduce_by_key(lambda x, y: x + y).sorted()
+        assert res == [('a', 1), ('b', 6), ('c', 8)]
+
     def test_reverse(self):
         res = seq.range(5).reverse()
+        print(res)
         assert res == [4, 3, 2, 1, 0]
 
     def test_slice(self):
@@ -184,7 +229,7 @@ class TestTransformations(unittest.TestCase):
         res = seq.range(10).sliding(size=5, step=3)
         assert res == [[0, 1, 2, 3, 4], [3, 4, 5, 6, 7], [6, 7, 8, 9], [9]]
 
-    def test_sorted(self):
+    def test_sorted_or_order_by(self):
         res = seq(1, 5, 3, 2, 4).sorted()
         assert res == [1, 2, 3, 4, 5]
 
@@ -193,6 +238,14 @@ class TestTransformations(unittest.TestCase):
 
         res = seq(1, 5, 3, 2, 4).sorted(key=lambda x: x % 2)
         assert res == [2, 4, 1, 5, 3]
+
+        res = seq((1, 30), (2, 20), (3, 10)).order_by(lambda x: x[1])
+        print(res)
+        assert res == [(3, 10), (2, 20), (1, 30)]
+
+    def test_starmap_or_smap(self):
+        res = seq([(1, 2), (3, 4), (5, 6)]).starmap(lambda x, y: x + y)
+        assert res == [3, 7, 11]
 
     def test_tail(self):
         res = seq.range(5).tail()
@@ -228,7 +281,7 @@ class TestTransformations(unittest.TestCase):
         assert res == [('red', 1), ('green', 2), ('blue', 3)]
 
 
-class TestActions_joins(unittest.TestCase):
+class TestTransformations_joins(unittest.TestCase):
     def test_inner_join(self):
         A = [('a', 11), ('b', 12), ('c', 13)]
         B = [('b', 22), ('c', 23), ('d', 24)]
@@ -263,7 +316,7 @@ class TestActions_joins(unittest.TestCase):
         assert res == [('b', (12, 22)), ('c', (13, 23)), ('d', (None, 24))]
 
 
-class TestActions_sets(unittest.TestCase):
+class TestTransformations_sets(unittest.TestCase):
     def test_difference(self):
         res = seq([1, 2, 3]).difference([3, 4, 5])
         assert res == [1, 2]
@@ -302,6 +355,10 @@ class TestActions(unittest.TestCase):
         res = seq.range(10).find(lambda x: x > 0 and x % 2 == 0 and x % 7 == 0)
         assert res is None
 
+    def test_for_each(self):
+        res = seq(1, 2, 3).for_each(print)
+        assert res is None
+
     def test_head_or_first(self):
         res = seq.range(10).head()
         assert res == 0
@@ -327,6 +384,17 @@ class TestActions(unittest.TestCase):
         res = seq([]).last_option()
         assert res is None
 
+    def test_fold_left_or_reduce(self):
+        res = seq(1, 2, 3).fold_left('0', lambda curr, next: '({} + {})'.format(curr, next))
+        assert res == '(((0 + 1) + 2) + 3)'
+
+        res = seq(1, 2, 3).reduce(lambda curr, next: '({} + {})'.format(curr, next), 0)
+        assert res == '(((0 + 1) + 2) + 3)'
+
+    def test_fold_right(self):
+        res = seq(1, 2, 3).fold_right('0', lambda curr, next: '({} + {})'.format(curr, next))
+        assert res == '(1 + (2 + (3 + 0)))'
+
 
 class TestActions_boolean(unittest.TestCase):
     def test_all(self):
@@ -350,6 +418,10 @@ class TestActions_boolean(unittest.TestCase):
     def test_exists(self):
         assert not seq.range(1, 10).exists(lambda x: x % 2 == 0 and x % 5 == 0)
         assert seq.range(1, 11).exists(lambda x: x % 2 == 0 and x % 5 == 0)
+
+    def test_for_all(self):
+        assert seq(1, 2, 3).for_all(lambda x: x > 0)
+        assert not seq(1, 2, -1).for_all(lambda x: x > 0)
 
 
 class TestActions_number(unittest.TestCase):
