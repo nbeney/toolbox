@@ -572,10 +572,28 @@ class TestActions_conversion(unittest.TestCase):
         res = seq.range(5).to_list(n=3)
         assert res == [0, 1, 2]
 
-    def test_to_pandas(self):
+    def test_to_pandas_tuples(self):
+        exp = _normalize('''
+                color  value
+            0    red      1
+            1  green      2
+            2   blue      3
+       ''')
         res = seq(('red', 1), ('green', 2), ('blue', 3)).to_pandas(columns=['color', 'value'])
-        print(res)
-        assert False
+        act = _normalize(str(res))
+        assert exp == act
+
+    def test_to_pandas_dict(self):
+        exp = _normalize('''
+                color  value
+            0    red      1
+            1  green      2
+            2   blue      3
+       ''')
+        res = seq({'color': 'red', 'value': 1}, {'color': 'green', 'value': 2}, {'color': 'blue', 'value': 3}) \
+            .to_pandas()
+        act = _normalize(str(res))
+        assert exp == act
 
     def test_to_set(self):
         res = seq(1, 2, 3, 2, 1).to_set()
