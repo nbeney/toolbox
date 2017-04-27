@@ -31,6 +31,14 @@ def _make_tmp_file(text):
     return f.name
 
 
+def _read_file(path):
+    content = seq.open(path, delimiter='\n') \
+        .map(lambda x: x.strip()) \
+        .filter(lambda x: x != '') \
+        .make_string('\n')
+    return content
+
+
 class TestStreams_input(unittest.TestCase):
     def test_seq(self):
         res = seq(1, 2, 3, 4, 5).sum()
@@ -106,22 +114,92 @@ class TestStreams_input(unittest.TestCase):
 
 class TestStreams_output(unittest.TestCase):
     def test_to_csv(self):
-        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_csv('test.csv')
+        path = 'test.csv'
+        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_csv(path)
+        exp = _normalize('''
+            a,b,c
+            11,12,13
+            21,22,23
+        ''')
+        act = _normalize(_read_file(path))
+        assert exp == act
 
-    def test_to_file(self):
-        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_file('test.txt')
+    def test_to_file_without_delim(self):
+        path = 'test-wo-delim.txt'
+        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_file(path)
+        exp = _normalize('''
+            [('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)]
+        ''')
+        act = _normalize(_read_file(path))
+        assert exp == act
 
-    def test_to_json(self):
-        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_json('test.json')
+    def test_to_file_with_delim(self):
+        path = 'test-w-delim.txt'
+        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_file(path, delimiter='\n')
+        exp = _normalize('''
+            ('a', 'b', 'c')
+            (11, 12, 13)
+            (21, 22, 23)
+        ''')
+        act = _normalize(_read_file(path))
+        assert exp == act
+
+    def test_to_json_array(self):
+        path = 'test-array.json'
+        seq(('a', 1), ('b', 2), ('c', 3)).to_json(path, root_array=True)
+        exp = _normalize('''
+            [["a", 1], ["b", 2], ["c", 3]]
+        ''')
+        act = _normalize(_read_file(path))
+        assert exp == act
+
+    def test_to_json_dict(self):
+        path = 'test-dict.json'
+        seq(('a', 1), ('b', 2), ('c', 3)).to_json(path, root_array=False)
+        exp = [
+            '{"a": 1, "b": 2, "c": 3}',
+            '{"a": 1, "c": 3, "b": 2}',
+            '{"b": 2, "a": 1, "c": 3}',
+            '{"b": 2, "c": 3, "a": 1}',
+            '{"c": 3, "a": 1, "b": 2}',
+            '{"c": 3, "b": 2, "a": 1}',
+        ]
+        act = _normalize(_read_file(path)).strip()
+        assert act in exp
 
     def test_to_jsonl(self):
-        seq(('a', 'b', 'c'), (11, 12, 13), (21, 22, 23)).to_jsonl('test.jsonl')
+        path = 'test.jsonl'
+        seq(('a', 1), ('b', 2), ('c', 3)).to_jsonl(path)
+        exp = _normalize('''
+            ["a", 1]
+            ["b", 2]
+            ["c", 3]
+        ''')
+        act = _normalize(_read_file(path))
+        assert exp == act
 
-    def test_to_pandas(self):
-        assert 1 == 2
+    def test_to_sqlite3_tuples(self):
+        conn = sqlite3.connect(':memory:')
+        c = conn.cursor()
+        c.execute('''CREATE TABLE demo (color TEXT, value REAL)''')
+        conn.commit()
 
-    def test_to_sqlite3(self):
-        assert 1 == 2
+        seq(('red', 1), ('green', 2), ('blue', 3)).to_sqlite3(conn, 'INSERT INTO demo (color, value) VALUES (?, ?)')
+
+        res = seq.sqlite3(conn, 'SELECT * FROM demo')
+        assert res == [('red', 1), ('green', 2), ('blue', 3)]
+
+    def test_to_sqlite3_dicts(self):
+        conn = sqlite3.connect(':memory:')
+        c = conn.cursor()
+        c.execute('''CREATE TABLE demo (color TEXT, value REAL)''')
+        conn.commit()
+
+        seq({'color': 'red', 'value': 1}, {'color': 'green', 'value': 2}, {'color': 'blue', 'value': 3}) \
+            .to_sqlite3(conn, 'demo')
+
+        res = seq.sqlite3(conn, 'SELECT * FROM demo')
+        assert res == [('red', 1), ('green', 2), ('blue', 3)]
 
 
 class TestTransformations(unittest.TestCase):
@@ -493,6 +571,11 @@ class TestActions_conversion(unittest.TestCase):
 
         res = seq.range(5).to_list(n=3)
         assert res == [0, 1, 2]
+
+    def test_to_pandas(self):
+        res = seq(('red', 1), ('green', 2), ('blue', 3)).to_pandas(columns=['color', 'value'])
+        print(res)
+        assert False
 
     def test_to_set(self):
         res = seq(1, 2, 3, 2, 1).to_set()
