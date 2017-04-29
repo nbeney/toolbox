@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 import unittest
-from functools import lru_cache, total_ordering, partialmethod, singledispatch
+from functools import lru_cache, total_ordering, partialmethod, singledispatch, wraps
 from functools import partial
 from functools import reduce
 from operator import add
@@ -104,3 +104,35 @@ class TestFunctools(unittest.TestCase):
         self.assertEqual('number override: 1', fun(1))
         self.assertEqual('number override: 1.0', fun(1.0))
         self.assertEqual('no override: [1, 2, 3]', fun([1, 2, 3]))
+
+    def test_wraps(self):
+        def decorator_without_wraps(func):
+            def wrapped_func():
+                return func
+
+            return wrapped_func
+
+        def f():
+            """Some function"""
+            pass
+
+        f_dec = decorator_without_wraps(f)
+
+        self.assertNotEqual(f.__name__, f_dec.__name__)
+        self.assertNotEqual(f.__doc__, f_dec.__doc__)
+
+        def decorator_with_wraps(func):
+            @wraps(func)
+            def wrapped_func():
+                return func
+
+            return wrapped_func
+
+        def g():
+            """Some function"""
+            pass
+
+        g_dec = decorator_with_wraps(g)
+
+        self.assertEqual(g.__name__, g_dec.__name__)
+        self.assertEqual(g.__doc__, g_dec.__doc__)
