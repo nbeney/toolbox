@@ -6,6 +6,7 @@ import unittest
 from functools import lru_cache, total_ordering, partialmethod, singledispatch, wraps
 from functools import partial
 from functools import reduce
+from math import log
 from operator import add
 from timeit import timeit
 
@@ -106,33 +107,29 @@ class TestFunctools(unittest.TestCase):
         self.assertEqual('no override: [1, 2, 3]', fun([1, 2, 3]))
 
     def test_wraps(self):
-        def decorator_without_wraps(func):
-            def wrapped_func():
-                return func
+        def nullable_unwrapped(func):
+            def wrapped_func(arg):
+                return None if arg is None else func(arg)
 
             return wrapped_func
 
-        def f():
-            """Some function"""
-            pass
+        nlog_unwrapped = nullable_unwrapped(log)
 
-        f_dec = decorator_without_wraps(f)
+        self.assertEqual(0, nlog_unwrapped(1))
+        self.assertEqual(None, nlog_unwrapped(None))
+        self.assertNotEqual(log.__name__, nlog_unwrapped.__name__)
+        self.assertNotEqual(log.__doc__, nlog_unwrapped.__doc__)
 
-        self.assertNotEqual(f.__name__, f_dec.__name__)
-        self.assertNotEqual(f.__doc__, f_dec.__doc__)
-
-        def decorator_with_wraps(func):
+        def nullable_wrapped(func):
             @wraps(func)
-            def wrapped_func():
-                return func
+            def wrapped_func(arg):
+                return None if arg is None else func(arg)
 
             return wrapped_func
 
-        def g():
-            """Some function"""
-            pass
+        nlog_wrapped = nullable_wrapped(log)
 
-        g_dec = decorator_with_wraps(g)
-
-        self.assertEqual(g.__name__, g_dec.__name__)
-        self.assertEqual(g.__doc__, g_dec.__doc__)
+        self.assertEqual(0, nlog_wrapped(1))
+        self.assertEqual(None, nlog_wrapped(None))
+        self.assertEqual(log.__name__, nlog_wrapped.__name__)
+        self.assertEqual(log.__doc__, nlog_wrapped.__doc__)
