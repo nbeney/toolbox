@@ -210,3 +210,8 @@ class TestPandas_Series(unittest.TestCase):
         s5 = s1.reindex(np.arange(0, 7), method='bfill')
         self.assertEqual(s5.index.tolist(), [0, 1, 2, 3, 4, 5, 6])
         self.assertEqual(s5.values.tolist(), ['red', 'green', 'green', 'green', 'blue', 'blue', np.nan])
+
+class TestPandas_Pivot(unittest.TestCase):
+    def test_1(self):
+        df = pd.read_csv('haircolor.csv')
+        df
