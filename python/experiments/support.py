@@ -14,6 +14,7 @@ import csv
 import datetime
 import sys
 import unittest
+from io import StringIO
 
 from click.testing import CliRunner
 from pyDatalog import Logic
@@ -173,6 +174,11 @@ def get_onhols_list(date):
 
 
 @for_pdl
+def today():
+    return '20171129'
+
+
+@for_pdl
 def next_weekday(date, n=1):
     dd = datetime.datetime.strptime(date, '%Y%m%d')
     dd += datetime.timedelta(days=n)
@@ -308,7 +314,7 @@ def reinit_pdl_functions():
 
     global last_oncall_date
     last_oncall_date = pdl.Term('last_oncall_date')
-    (last_oncall_date[Person] == _max(Date, order_by=Date)) <= (is_oncall(Date, Person))
+    (last_oncall_date[Person] == _max(Date, order_by=Date)) <= (is_oncall(Date, Person) & (Date > DUMMY_DATE))
     (last_oncall_date[None] == _max(Date, order_by=Date)) <= (is_oncall(Date, X) & (Date > DUMMY_DATE))
 
     global next_oncall_date
@@ -327,90 +333,65 @@ def reinit_pdl_functions():
         (Score == score[Date, Person]))
 
 
-def reinit_pdl(file):
+def reinit_pdl(f):
+    pdl.clear()
     reinit_pdl_vars()
     reinit_pdl_facts()
-    read_facts_from_file(file)
+    read_facts_from_file(f)
     reinit_pdl_predicates()
     reinit_pdl_functions()
 
 
-def read_facts_from_file(path):
-    #     CSV = '''
-    # # ...
-    #
-    # DATE,ONCALL,ONHOLS,UNAVAILABLE
-    # 20171120,Alan,,
-    # 20171121,Bert,,
-    # 20171122,Cloe,Alan Bert,
-    # 20171123,Alan,,
-    # 20171124,Bert,,Cloe
-    # 20171127,Bert,,Cloe
-    # 20171128,Alan,,Cloe
-    # 20171129,Bert,,Cloe
-    # 20171130,Alan,,Cloe
-    # 20171201,Alan,Bert,
-    # 20171204,Cloe,Bert,
-    # 20171205,Cloe,Bert,
-    # 20171206,Cloe,Bert,
-    # 20171207,Cloe,Bert,
-    # 20171208,Alan,Bert,
-    # 20171211,Cloe,Bert,
-    # 20171212,Cloe,,Alan
-    #     '''
-    #
-    #     f = StringIO(unicode(CSV))
-
+def read_facts_from_file(f):
     global file_header_lines
     file_header_lines = []
 
-    with open(path, 'r') as f:
-        in_person_section = False
-        in_date_section = False
+    in_person_section = False
+    in_date_section = False
 
-        for row in csv.reader(f, delimiter='|'):
-            # Strip the leading and trailing spaces in each value.
-            row = [_.strip() for _ in row]
+    for row in csv.reader(f, delimiter='|'):
+        # Strip the leading and trailing spaces in each value.
+        row = [_.strip() for _ in row]
 
-            # Skip the empty lines.
-            if len(row) == 0 or row[0] == '':
-                continue
+        # Skip the empty lines.
+        if len(row) == 0 or row[0] == '':
+            continue
 
-            # Collect all the comment lines so that they are preserved when the file is regenerated.
-            if row[0].startswith('#'):
-                file_header_lines.append(','.join(row))
-                continue
+        # Collect all the comment lines so that they are preserved when the file is regenerated.
+        if row[0].startswith('#'):
+            file_header_lines.append(','.join(row))
+            continue
 
-            # Are we starting the PERSON or DATE section?
-            if row[0] == 'PERSON':
-                in_person_section = True
-                continue
-            if row[0] == 'DATE':
-                in_person_section = False
-                in_date_section = True
-                continue
+        # Are we starting the PERSON or DATE section?
+        if row[0] == 'PERSON':
+            in_person_section = True
+            continue
+        if row[0] == 'DATE':
+            in_person_section = False
+            in_date_section = True
+            continue
 
-            # Process the line according to the current section.
-            if (in_person_section or in_date_section) and row[0].startswith('--'):
-                continue
-            if in_person_section and len(row) >= 4:
-                person_, name_, initial_score_, wfh_days_ = row[:4]
-                + person(person_)
-                + person_name(person_, name_)
-                + initial_score(person_, float(initial_score_))
-                if wfh_days_:
-                    for d in wfh_days_.split(' '):
-                        + wfh_day(person_, d)
-            elif in_date_section and len(row) >= 5:
-                date_, dow_, oncall_, unavailable_, onhols_ = row[:5]
-                if oncall_:
-                    + is_oncall(date_, oncall_)
-                if unavailable_:
-                    for p in unavailable_.split(' '):
-                        + is_unavailable(date_, p)
-                if onhols_:
-                    for p in onhols_.split(' '):
-                        + is_onhols(date_, p)
+        # Process the line according to the current section.
+        if (in_person_section or in_date_section) and row[0].startswith('--'):
+            continue
+        if in_person_section and len(row) >= 4:
+            person_, name_, initial_score_, wfh_days_ = row[:4]
+            + person(person_)
+            + person_name(person_, name_)
+            + initial_score(person_, float(initial_score_))
+            if wfh_days_:
+                for d in wfh_days_.split(' '):
+                    + wfh_day(person_, d)
+        elif in_date_section and len(row) >= 5:
+            date_, dow_, oncall_, unavailable_, onhols_ = row[:5]
+            if oncall_:
+                + is_oncall(date_, oncall_)
+            if unavailable_:
+                for p in unavailable_.split(' '):
+                    + is_unavailable(date_, p)
+            if onhols_:
+                for p in onhols_.split(' '):
+                    + is_onhols(date_, p)
 
 
 def write_facts_to_file(path=None):
@@ -450,12 +431,18 @@ def assign_next():
         + is_oncall(next_date, next_person)
     else:
         res = date_qry
-        last_date, next_date = res.v()
-        print('ERROR: Could not find a solution for {}!'.format(next_date))
-        print()
-        display(stats(last_date))
-        display(stats(next_date))
-        sys.exit(1)
+        if res:
+            last_date, next_date = res.v()
+            print('ERROR: Could not find a solution for {}!'.format(next_date))
+            print()
+            display(stats(last_date))
+            display(stats(next_date))
+            sys.exit(1)
+        else:
+            next_date = today()
+            res = (Person == next_oncall_person[next_date])
+            next_person = res[0][0]
+            + is_oncall(next_date, next_person)
 
 
 def assign_until(date):
@@ -472,7 +459,8 @@ def assign_until(date):
         help='The CSV file used to keep track of assignments, holidays, etc.')
 @pass_context
 def cli(ctx, file):
-    reinit_pdl(file)
+    with open(file, 'r') as f:
+        reinit_pdl(f)
     ctx.obj = dict(file=file)
 
 
@@ -530,7 +518,7 @@ def show(obj, from_date, to_date, from_days, to_days):
         from_date = prev_weekday(curr_weekday(), n=from_days)
     if to_days is not None:
         to_date = next_weekday(curr_weekday(), n=to_days)
-    assign_until(to_date)
+    # assign_until(to_date)
     for date in date_range(from_date, to_date):
         res = is_oncall(date, Person).v()
         print('{} : {}'.format(date, res[0] if res else '???'))
@@ -550,7 +538,7 @@ def status(obj, from_date, to_date, from_days, to_days):
         from_date = prev_weekday(curr_weekday(), n=from_days)
     if to_days is not None:
         to_date = next_weekday(curr_weekday(), n=to_days)
-    assign_until(to_date)
+    # assign_until(to_date)
     for date in date_range(from_date, to_date):
         display(stats(date))
 
@@ -572,7 +560,7 @@ def summary(obj, from_date, to_date, from_days, to_days, no_status, no_score):
         from_date = prev_weekday(curr_weekday(), n=from_days)
     if to_days is not None:
         to_date = next_weekday(curr_weekday(), n=to_days)
-    assign_until(to_date)
+    # assign_until(to_date)
     display(schedule(from_date, to_date, no_status, no_score))
 
 
@@ -599,7 +587,10 @@ def print_leaver_instructions(obj):
 @cli.command(help='Run the unit tests (development only).')
 @pass_obj
 def tests(obj):
-    suite = unittest.TestLoader().loadTestsFromTestCase(TestCLI)
+    suite = unittest.TestSuite([
+        unittest.TestLoader().loadTestsFromTestCase(TestCLI),
+        unittest.TestLoader().loadTestsFromTestCase(TestEngine),
+    ])
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 
@@ -607,14 +598,106 @@ def tests(obj):
 # Unit tests
 #
 
+def make_input_file(persons, dates):
+    pp = ['|'.join(str(_) for _ in p) for p in persons]
+    pp = '''
+PERSON | NAME           | INITIAL_SCORE | RECURRING_WFH_DAYS
+-------|----------------|---------------|-------------------
+    ''' + '\n'.join(pp)
+
+    dd = ['|'.join(str(_) for _ in d) for d in dates]
+    dd = '''
+DATE     | DOW | ONCALL | UNAVAILABLE | HOLIDAYS
+---------|-----|--------|-------------|---------
+    ''' + '\n'.join(dd)
+
+    return StringIO(pp + dd)
+
+
+class TestEngine(unittest.TestCase):
+    def test_last_oncall_date_from_empty(self):
+        reinit_pdl(make_input_file([], []))
+        LastDate = pdl.Variable('Last Date')
+        res = (LastDate == last_oncall_date[None]) & (LastDate != DUMMY_DATE)
+        self.assertEqual(res, [])
+
+    def test_last_oncall_date_from_one(self):
+        reinit_pdl(make_input_file([], [('20171129', None, 'xxx', None, None)]))
+        LastDate = pdl.Variable('Last Date')
+        res = (LastDate == last_oncall_date[None]) & (LastDate != DUMMY_DATE)
+        self.assertEqual(res[0][0], '20171129')
+
+    def test_last_oncall_date_from_many(self):
+        reinit_pdl(make_input_file([], [
+            ('20171127', None, 'xxx', None, None),
+            ('20171128', None, 'yyy', None, None),
+            ('20171129', None, 'zzz', None, None),
+        ]))
+        LastDate = pdl.Variable('Last Date')
+        res = (LastDate == last_oncall_date[None]) & (LastDate != DUMMY_DATE)
+        self.assertEqual(res[0][0], '20171129')
+
+    def test_next_oncall_date_from_empty(self):
+        reinit_pdl(make_input_file([], []))
+        NextDate = pdl.Variable('Next Date')
+        res = (NextDate == next_oncall_date[None]) & (NextDate != DUMMY_DATE)
+        self.assertEqual(res, [])
+
+    def test_next_oncall_date_from_one(self):
+        reinit_pdl(make_input_file([], [('20171129', None, 'xxx', None, None)]))
+        NextDate = pdl.Variable('Next Date')
+        res = (NextDate == next_oncall_date[None]) & (NextDate != DUMMY_DATE)
+        self.assertEqual(res[0][0], '20171130')
+
+    def test_next_oncall_date_from_many(self):
+        reinit_pdl(make_input_file([], [
+            ('20171127', None, 'xxx', None, None),
+            ('20171128', None, 'yyy', None, None),
+            ('20171129', None, 'zzz', None, None),
+        ]))
+        NextDate = pdl.Variable('Next Date')
+        res = (NextDate == next_oncall_date[None]) & (NextDate != DUMMY_DATE)
+        self.assertEqual(res[0][0], '20171130')
+
+
 class TestCLI(unittest.TestCase):
     def test_print_sample_file(self):
         runner = CliRunner()
         result = runner.invoke(cli, ['print-sample-file'])
-        self.assertTrue(result.exit_code == 0)
+        self.assertEqual(result.exit_code, 0)
         self.assertIn('#', result.output)
         self.assertIn('PERSON', result.output)
         self.assertIn('DATE', result.output)
+
+    def test_print_joiner_instructions(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['print-joiner-instructions'])
+        self.assertEqual(result.exit_code, 0)
+
+    def test_print_leaver_instructions(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['print-leaver-instructions'])
+        self.assertTrue(result.exit_code == 0)
+
+    def test_assign(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['assign'])
+        self.assertEqual(result.exit_code, 0)
+
+    def test_show(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['show'])
+        self.assertEqual(result.exit_code, 0)
+
+    def test_status(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['status'])
+        self.assertEqual(result.exit_code, 0)
+
+    def test_summary(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ['summary'])
+        self.assertEqual(result.exit_code, 0)
 
 
 #
