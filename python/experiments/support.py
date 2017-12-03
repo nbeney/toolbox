@@ -479,13 +479,16 @@ class Rota:
         self.count_unavailable[Date, Person] = 0
         (self.count_unavailable[Date, Person] == _len(X)) <= self.is_unavailable(X, Person) & (X <= Date)
 
-        self.score = pdl.Term('score')
         initial = pdl.Term('initial')
         (initial[Person] == Initial) <= self.person_filt(Person, X, Initial, Y, Z)
+        self.score = pdl.Term('score')
+        self.score[Date, Person] = (
+            initial[Person] + self.count_oncall[Date, Person] + 0.2 * self.count_onhols[Date, Person])
+
         rank = pdl.Term('rank')
         (rank[Person] == Rank) <= self.person_filt(Person, X, Y, Z, Rank)
-        self.score[Date, Person] = (
-            1000 * (initial[Person] + self.count_oncall[Date, Person] + 0.2 * self.count_onhols[Date, Person]) + rank[Person])
+        self.ranked_score = pdl.Term('ranked_score')
+        self.ranked_score[Date, Person] = 10000 * self.score[Date, Person] + rank[Person]
 
         self.next_oncall_person = pdl.Term('next_oncall_person')
         (self.next_oncall_person[Date] == _min(Person, order_by=Score)) <= (
@@ -494,7 +497,7 @@ class Rota:
             ~self.is_unavailable(Date, Person) &
             ~self.is_back_from_hols(Date, Person) &
             ~self.is_wfh(Date, Person) &
-            (Score == self.score[Date, Person]))
+            (Score == self.ranked_score[Date, Person]))
 
     def _reinit_pdl(self, f):
         pdl.clear()
@@ -557,16 +560,14 @@ class Rota:
             print(file=f)
             print(file=f)
 
-        Person, Name, Score, WfhList, WfhStr, Rank = make_vars('PERSON', 'NAME', 'INITIAL', 'WfhList', 'RECURRING_WFH_DAYS', 'Rank')
+        Person, Name, Score, WfhList, WfhStr, Rank = make_vars('PERSON', 'NAME', 'INITIAL', 'WfhList',
+                                                               'RECURRING_WFH_DAYS', 'Rank')
         temp = pdl.Term('temp')
         temp(Person, Name, Score, WfhStr) <= (
             self.person_filt(Person, Name, Score, WfhList, Rank) & (WfhStr == join(WfhList))
         )
         display(temp(Person, Name, Score, WfhStr), file=f)
         print(file=f)
-
-
-
 
         Date, Dow, Oncall, Unavailable, Holidays = make_vars('DATE', 'DOW', 'ONCALL', 'UNAVAILABLE', 'HOLIDAYS')
         display(
