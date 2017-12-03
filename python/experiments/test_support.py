@@ -2,19 +2,22 @@ from __future__ import print_function
 
 import os
 import unittest
+from io import StringIO
+
+from click.testing import CliRunner
 
 from support import *
 
 PERSONS_1 = [
-    ('xxx', 'Mr X', 1, ''),
+    ('xxx', 'Mr X', 1, '', 1),
 ]
 
 PERSONS_2 = PERSONS_1 + [
-    ('yyy', 'Mr Y', 2, 'Tue Thu'),
+    ('yyy', 'Mr Y', 2, 'Tue Thu', 2),
 ]
 
 PERSONS_3 = PERSONS_2 + [
-    ('zzz', 'Mr Z', 3, 'Fri'),
+    ('zzz', 'Mr Z', 3, 'Fri', 3),
 ]
 
 DATES_1 = [
@@ -116,8 +119,8 @@ class TestRota_Core(unittest.TestCase):
 
     def test_add_person(self):
         r = Rota().load(make_input_file(persons=PERSONS_1, dates=DATES_1))
-        person, name, initial, wfh_days = PERSONS_2[-1]
-        r.add_person(person, name, initial, wfh_days)
+        person, name, initial, wfh_days, rank = PERSONS_2[-1]
+        r.add_person(person, name, initial, wfh_days, rank)
         self.assertEqual(r.persons(), PERSONS_2)
 
     def test_remove_existing_person(self):
@@ -131,6 +134,17 @@ class TestRota_Core(unittest.TestCase):
         person = 'this is a missing name'
         r.remove_person(person)
         self.assertEqual(r.persons(), PERSONS_3)
+
+    def test_assign_from_empty(self):
+        r = Rota()
+        r.add_person('xxx', 'Mr X', 0, '', 1)
+        r.add_person('yyy', 'Mr Y', 0, '', 2)
+        r.add_person('zzz', 'Mr Z', 0, '', 3)
+        N = 10
+        for _ in range(N):
+            r.assign()
+        r.save(None)
+        self.assertEqual(len(r), N)
 
 
 class TestRota_LoadAndSave(unittest.TestCase):
@@ -174,33 +188,33 @@ class TestRota_LoadAndSave(unittest.TestCase):
         r = Rota().load(make_input_file(persons=[], dates=DATES_2))
         self.assertEqual(len(r), len(DATES_2))
 
-    def test_save_none(self):
-        r = Rota().save(None)
-        r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(None)
+    # def test_save_none(self):
+    #     r = Rota().save(None)
+    #     r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(None)
 
     def test_save_file(self):
-        # with CliRunner().isolated_filesystem():
-        path = 'test_support1.txt'
-        r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(path)
-        self.assertTrue(os.path.exists(path))
-        self.assertEqual(file_line_count(path), 1 + len(PERSONS_3) + 1 + len(DATES_3))
-        self.assertTrue(file_contains(path, 'Comment line 1'), 0)
-        self.assertTrue(file_contains(path, 'Comment line 2'), 0)
-        self.assertTrue(file_contains(path, 'PERSON'), 0)
-        self.assertTrue(file_contains(path, 'DATE'), 0)
-        self.assertFalse(file_contains(path, 'not defined'), 0)
+        with CliRunner().isolated_filesystem():
+            path = 'test_support1.txt'
+            r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(path)
+            self.assertTrue(os.path.exists(path))
+            self.assertEqual(file_line_count(path), 1 + len(PERSONS_3) + 1 + len(DATES_3))
+            self.assertTrue(file_contains(path, 'Comment line 1'), 0)
+            self.assertTrue(file_contains(path, 'Comment line 2'), 0)
+            self.assertTrue(file_contains(path, 'PERSON'), 0)
+            self.assertTrue(file_contains(path, 'DATE'), 0)
+            self.assertFalse(file_contains(path, 'not defined'), 0)
 
     def test_save_load(self):
-        # with CliRunner().isolated_filesystem():
-        path = 'test_support2.txt'
-        saved = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(path)
-        loaded = Rota().load(path)
-        self.assertTrue(os.path.exists(path))
-        self.assertEqual(len(loaded), len(saved))
-        self.assertEqual(loaded.persons(), saved.persons())
-        self.assertEqual(loaded.dates(), saved.dates())
-        self.assertEqual(loaded.persons(), PERSONS_3)
-        self.assertEqual(loaded.dates(), DATES_3)
+        with CliRunner().isolated_filesystem():
+            path = 'test_support2.txt'
+            saved = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(path)
+            loaded = Rota().load(path)
+            self.assertTrue(os.path.exists(path))
+            self.assertEqual(len(loaded), len(saved))
+            self.assertEqual(loaded.persons(), saved.persons())
+            self.assertEqual(loaded.dates(), saved.dates())
+            self.assertEqual(loaded.persons(), PERSONS_3)
+            self.assertEqual(loaded.dates(), DATES_3)
 
 # class TestCLI(unittest.TestCase):
 #     def test_print_sample_file(self):

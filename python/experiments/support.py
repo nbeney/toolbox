@@ -13,7 +13,6 @@ from __future__ import print_function
 import csv
 import datetime
 import sys
-from io import StringIO
 
 from pyDatalog import Logic
 from pyDatalog import pyDatalog as pdl
@@ -86,7 +85,7 @@ def display(res, file=None):
 #
 #
 # def schedule(from_date=None, to_date=None, no_status=False, no_score=False):
-#     query = oncall_date(Date) & (Dow == get_dow(Date)) & is_oncall(Date, Person)
+#     query = oncall_date(Date) & (Dow == get_dow(Date)) & is_oncall_raw(Date, Person)
 #
 #     if from_date:
 #         query &= (Date >= from_date)
@@ -124,14 +123,14 @@ def dump_all():
 
 
 @for_pdl
+def today():
+    return datetime.datetime.today().strftime('%Y%m%d')
+
+
+@for_pdl
 def get_dow(date):
     dd = datetime.datetime.strptime(date, '%Y%m%d')
     return dd.strftime('%a')
-
-
-# @for_pdl
-# def get_wfh_list(person):
-#     return ' '.join([_[0] for _ in sorted(wfh_day(person, Dow).data)])
 
 
 @for_pdl
@@ -146,11 +145,6 @@ def get_onhols_list(date, rota):
     return ' '.join([_[0] for _ in sorted(rota.is_onhols(date, Person).data)])
 
 
-# @for_pdl
-# def today():
-#     return '20171129'
-
-
 @for_pdl
 def next_weekday(date, n=1):
     dd = datetime.datetime.strptime(date, '%Y%m%d')
@@ -160,13 +154,13 @@ def next_weekday(date, n=1):
     return dd.strftime('%Y%m%d')
 
 
-# @for_pdl
-# def prev_weekday(date, n=1):
-#     dd = datetime.datetime.strptime(date, '%Y%m%d')
-#     dd += datetime.timedelta(days=-n)
-#     if dd.isoweekday() in (6, 7):
-#         dd += datetime.timedelta(days=5 - dd.isoweekday())
-#     return dd.strftime('%Y%m%d')
+@for_pdl
+def prev_weekday(date, n=1):
+    dd = datetime.datetime.strptime(date, '%Y%m%d')
+    dd += datetime.timedelta(days=-n)
+    if dd.isoweekday() in (6, 7):
+        dd += datetime.timedelta(days=5 - dd.isoweekday())
+    return dd.strftime('%Y%m%d')
 
 
 def curr_weekday():
@@ -193,7 +187,7 @@ def date_range(from_date, to_date):
 #     pass
 #     global oncall_date
 #     oncall_date = pdl.Term('oncall_date')
-#     oncall_date(Date) <= (is_oncall(Date, X) & (Date != DUMMY_DATE))
+#     oncall_date(Date) <= (is_oncall_raw(Date, X) & (Date != DUMMY_DATE))
 #
 #     # global is_back_from_hols
 #     # PrevDate = pdl.Variable('PrevDate')
@@ -213,9 +207,9 @@ def date_range(from_date, to_date):
 #
 #     # global last_oncall_date
 #     # last_oncall_date = pdl.Term('last_oncall_date')
-#     # (last_oncall_date[Person] == _max(Date, order_by=Date)) <= (is_oncall(Date, Person) & (Date > DUMMY_DATE))
-#     # (last_oncall_date[None] == _max(Date, order_by=Date)) <= (is_oncall(Date, X) & (Date > DUMMY_DATE))
-#     # last_oncall_date(Date) <= is_oncall(Date, Person) & (Date > DUMMY_DATE)
+#     # (last_oncall_date[Person] == _max(Date, order_by=Date)) <= (is_oncall_raw(Date, Person) & (Date > DUMMY_DATE))
+#     # (last_oncall_date[None] == _max(Date, order_by=Date)) <= (is_oncall_raw(Date, X) & (Date > DUMMY_DATE))
+#     # last_oncall_date(Date) <= is_oncall_raw(Date, Person) & (Date > DUMMY_DATE)
 #
 #     # global next_oncall_date
 #     # next_oncall_date = pdl.Term('next_oncall_date')
@@ -234,12 +228,12 @@ def date_range(from_date, to_date):
 #     # (status[Date, Person] == 'On hols') <= (is_onhols(Date, Person))
 #     # (status[Date, Person] == 'Unavailable') <= (is_unavailable(Date, Person))
 #     # (status[Date, Person] == 'Back from hols') <= (is_back_from_hols(Date, Person))
-#     # (status[Date, Person] == 'Oncall') <= (is_oncall(Date, Person))
+#     # (status[Date, Person] == 'Oncall') <= (is_oncall_raw(Date, Person))
 #
 #     # global count_oncall
 #     # count_oncall = pdl.Term('count_oncall')
 #     # count_oncall[Date, Person] = 0
-#     # (count_oncall[Date, Person] == _len(X)) <= (is_oncall(X, Person) & (X <= Date))
+#     # (count_oncall[Date, Person] == _len(X)) <= (is_oncall_raw(X, Person) & (X <= Date))
 #
 #     # global count_onhols
 #     # count_onhols = pdl.Term('count_onhols')
@@ -266,21 +260,6 @@ def date_range(from_date, to_date):
 #     #     ~is_back_from_hols(Date, Person) &
 #     #     ~is_at_home(Date, Person) &
 #     #     (Score == score[Date, Person]))
-#
-#
-# def reinit_pdl(f, clear=True):
-#     if clear:
-#         pdl.clear()
-#     reinit_pdl_vars()
-#     reinit_pdl_vars2()
-#     reinit_pdl_facts()
-#     reinit_pdl_facts2()
-#     if f:
-#         read_facts_from_file(f)
-#     reinit_pdl_predicates()
-#     reinit_pdl_predicates2()
-#     reinit_pdl_functions()
-#     reinit_pdl_functions2()
 
 
 def assign_next():
@@ -293,7 +272,7 @@ def assign_next():
     res = date_qry & (Person == next_oncall_person[NextDate])
     if res:
         last_date, next_date, next_person = res.v()
-        + is_oncall(next_date, next_person)
+        + is_oncall_raw(next_date, next_person)
     else:
         res = date_qry
         if res:
@@ -307,11 +286,11 @@ def assign_next():
             next_date = today()
             res = (Person == next_oncall_person[next_date])
             next_person = res[0][0]
-            + is_oncall(next_date, next_person)
+            + is_oncall_raw(next_date, next_person)
 
 
 def assign_until(date):
-    while is_oncall(date, Person).data == []:
+    while is_oncall_raw(date, Person).data == []:
         assign_next()
 
 
@@ -368,13 +347,13 @@ class Rota:
     def __len__(self):
         self._check_instance()
         Date, Person = make_vars('Date', 'Person')
-        res = self.is_oncall(Date, Person) & (Date > DUMMY_DATE)
+        res = self.is_oncall_filt(Date, Person)
         return len(res.data)
 
     def persons(self):
         self._check_instance()
-        Person, Name, Score, Days = make_vars('Person', 'Name', 'Score', 'Days')
-        res = self.person_filt(Person, Name, Score, Days)
+        Person, Name, Score, Days, Rank = make_vars('Person', 'Name', 'Score', 'Days', 'Rank')
+        res = self.person_filt(Person, Name, Score, Days, Rank)
         return sorted(res.data)
 
     def dates(self):
@@ -382,8 +361,7 @@ class Rota:
         temp = pdl.Term('temp')
         Date, Dow, Person, Unavailable, Holidays = make_vars('Date', 'Dow', 'Person', 'Unavailable', 'Holidays')
         temp(Date, Dow, Person, Unavailable, Holidays) <= (
-            self.is_oncall(Date, Person) &
-            (Date != DUMMY_DATE) &
+            self.is_oncall_filt(Date, Person) &
             (Dow == get_dow(Date)) &
             (Unavailable == get_unavailable_list(Date, self)) &
             (Holidays == get_onhols_list(Date, self))
@@ -391,21 +369,48 @@ class Rota:
         res = temp(Date, Dow, Person, Unavailable, Holidays)
         return sorted(res.data)
 
-    def add_person(self, person, name, initial, wfh_days):
-        + self.person_raw(person, name, initial, wfh_days)
+    def add_person(self, person, name, initial, wfh_days, rank):
+        self._check_instance()
+        + self.person_raw(person, name, initial, wfh_days, rank)
 
     def remove_person(self, person):
-        Name, Initial, WfhDays = make_vars('Name', 'Initial', 'WfhDays')
-        res = self.person_raw(person, Name, Initial, WfhDays)
+        self._check_instance()
+        Name, Initial, WfhDays, Rank = make_vars('Name', 'Initial', 'WfhDays', 'Rank')
+        res = self.person_raw(person, Name, Initial, WfhDays, Rank)
         if res:
-            - self.person_raw(person, Name.v(), Initial.v(), WfhDays.v())
+            - self.person_raw(person, Name.v(), Initial.v(), WfhDays.v(), Rank.v())
+
+    def assign(self):
+        self._check_instance()
+        LastDate, NextDate, Any, Person = make_vars('LastDate', 'NextDate', 'Any', 'Person')
+
+        date_qry = (LastDate == self.last_oncall_date[None]) & (NextDate == self.next_oncall_date[LastDate])
+
+        res = date_qry & (Person == self.next_oncall_person[NextDate])
+        if res:
+            last_date, next_date, next_person = res.v()
+            + self.is_oncall_raw(next_date, next_person)
+        else:
+            res = date_qry
+            if res:
+                last_date, next_date = res.v()
+                print('ERROR: Could not find a solution for {}!'.format(next_date))
+                print()
+                display(stats(last_date))
+                display(stats(next_date))
+                sys.exit(1)
+            else:
+                next_date = today()
+                res = (Person == self.next_oncall_person[next_date])
+                next_person = res[0][0]
+                + self.is_oncall_raw(next_date, next_person)
 
     def _reinit_pdl_facts(self):
         self.person_raw = pdl.Term('person_raw')
-        + self.person_raw(DUMMY_PERSON, DUMMY_NAME, 0, '')
+        + self.person_raw(DUMMY_PERSON, DUMMY_NAME, 0, '', 0)
 
-        self.is_oncall = pdl.Term('is_oncall')
-        + self.is_oncall(DUMMY_DATE, None)
+        self.is_oncall_raw = pdl.Term('is_oncall_raw')
+        + self.is_oncall_raw(DUMMY_DATE, None)
 
         self.is_onhols = pdl.Term('is_onhols')
         + self.is_onhols(DUMMY_DATE, None)
@@ -417,19 +422,76 @@ class Rota:
         + initial_score(DUMMY_PERSON, 0)
 
     def _reinit_pdl_predicates(self):
-        Person, Name, Initial, WfhDays = make_vars('Person', 'Name', 'Initial', 'WfhDays')
+        Person, Name, Initial, WfhDays, Rank = make_vars('Person', 'Name', 'Initial', 'WfhDays', 'Rank')
         self.person_filt = pdl.Term('person_filt')
-        self.person_filt(Person, Name, Initial, WfhDays) <= self.person_raw(Person, Name, Initial, WfhDays) & (
-            Person != DUMMY_PERSON)
+        self.person_filt(Person, Name, Initial, WfhDays, Rank) <= (
+            self.person_raw(Person, Name, Initial, WfhDays, Rank) & (Person != DUMMY_PERSON))
+
+        Date, Person = make_vars('Date', 'Person')
+        self.is_oncall_filt = pdl.Term('is_oncall_filt')
+        self.is_oncall_filt(Date, Person) <= self.is_oncall_raw(Date, Person) & (Date != DUMMY_DATE)
 
         Date, X = make_vars('Date', 'X')
         self.oncall_date = pdl.Term('oncall_date')
-        self.oncall_date(Date) <= self.is_oncall(Date, X) & (Date != DUMMY_DATE)
+        self.oncall_date(Date) <= self.is_oncall_filt(Date, X)
+
+        PrevDate, = make_vars('PrevDate')
+        self.is_back_from_hols = pdl.Term('is_back_from_hols')
+        self.is_back_from_hols(Date, Person) <= (
+            ~self.is_onhols(Date, Person) &
+            (PrevDate == prev_weekday(Date)) &
+            self.is_onhols(PrevDate, Person)
+        )
+
+        self.is_wfh = pdl.Term('is_wfh')
+        self.is_wfh(Date, Person) <= self.person_filt(Person, Name, Initial, WfhDays, Rank) & (get_dow(Date) == WfhDays)
+
+    def _reinit_pdl_functions(self):
+        Person, Date, X, Y, Z, A, Initial, Score, Rank = make_vars(
+            'Person', 'Date', 'X', 'Y', 'Z', 'A', 'Initial', 'Score', 'Rank')
+
+        self.last_oncall_date = pdl.Term('last_oncall_date')
+        (self.last_oncall_date[None] == _max(X, order_by=X)) <= self.oncall_date(X)
+        (self.last_oncall_date[None] == today()) <= ~self.oncall_date(X)
+
+        self.next_oncall_date = pdl.Term('next_oncall_date')
+        self.next_oncall_date[Date] = next_weekday(Date)
+        self.next_oncall_date[None] = next_weekday(self.last_oncall_date[None])
+
+        self.count_oncall = pdl.Term('count_oncall')
+        self.count_oncall[Date, Person] = 0
+        (self.count_oncall[Date, Person] == _len(X)) <= self.is_oncall_filt(X, Person) & (X <= Date)
+
+        self.count_onhols = pdl.Term('count_onhols')
+        self.count_onhols[Date, Person] = 0
+        (self.count_onhols[Date, Person] == _len(X)) <= self.is_onhols(X, Person) & (X <= Date)
+
+        self.count_unavailable = pdl.Term('count_unavailable')
+        self.count_unavailable[Date, Person] = 0
+        (self.count_unavailable[Date, Person] == _len(X)) <= self.is_unavailable(X, Person) & (X <= Date)
+
+        self.score = pdl.Term('score')
+        initial = pdl.Term('initial')
+        (initial[Person] == Initial) <= self.person_filt(Person, X, Initial, Y, Z)
+        rank = pdl.Term('rank')
+        (rank[Person] == Rank) <= self.person_filt(Person, X, Y, Z, Rank)
+        self.score[Date, Person] = (
+            1000 * (initial[Person] + self.count_oncall[Date, Person] + 0.2 * self.count_onhols[Date, Person]) + rank[Person])
+
+        self.next_oncall_person = pdl.Term('next_oncall_person')
+        (self.next_oncall_person[Date] == _min(Person, order_by=Score)) <= (
+            self.person_filt(Person, X, Y, Z, A) &
+            ~self.is_onhols(Date, Person) &
+            ~self.is_unavailable(Date, Person) &
+            ~self.is_back_from_hols(Date, Person) &
+            ~self.is_wfh(Date, Person) &
+            (Score == self.score[Date, Person]))
 
     def _reinit_pdl(self, f):
         pdl.clear()
         self._reinit_pdl_facts()
         self._reinit_pdl_predicates()
+        self._reinit_pdl_functions()
         if f:
             self._read_facts_from_file(f)
 
@@ -438,6 +500,7 @@ class Rota:
 
         in_person_section = False
         in_date_section = False
+        rank = 0
 
         for row in csv.reader(f, delimiter='|'):
             # Strip the leading and trailing spaces in each value.
@@ -466,11 +529,12 @@ class Rota:
                 continue
             elif in_person_section and len(row) >= 4:
                 person_, name_, initial_score_, wfh_days_ = row[:4]
-                + self.person_raw(person_, name_, float(initial_score_), wfh_days_)
+                rank += 1
+                + self.person_raw(person_, name_, float(initial_score_), wfh_days_, rank)
             elif in_date_section and len(row) >= 5:
                 date_, dow_, oncall_, unavailable_, onhols_ = row[:5]
                 if oncall_:
-                    + self.is_oncall(date_, oncall_)
+                    + self.is_oncall_raw(date_, oncall_)
                 if unavailable_:
                     for p in unavailable_.split(' '):
                         + self.is_unavailable(date_, p)
@@ -484,15 +548,17 @@ class Rota:
             print(file=f)
             print(file=f)
 
-        Person, Name, Score, WfhDays = make_vars('PERSON', 'NAME', 'INITIAL', 'RECURRING_WFH_DAYS')
-        display(self.person_filt(Person, Name, Score, WfhDays), file=f)
+        Person, Name, Score, WfhDays, Rank = make_vars('PERSON', 'NAME', 'INITIAL', 'RECURRING_WFH_DAYS', 'Rank')
+        temp = pdl.Term('temp')
+        temp(Person, Name, Score, WfhDays) <= self.person_filt(Person, Name, Score, WfhDays, Rank)
+        display(temp(Person, Name, Score, WfhDays), file=f)
         print(file=f)
 
         Date, Dow, Oncall, Unavailable, Holidays = make_vars('DATE', 'DOW', 'ONCALL', 'UNAVAILABLE', 'HOLIDAYS')
         display(
             self.oncall_date(Date) &
             (Dow == get_dow(Date)) &
-            self.is_oncall(Date, Oncall) &
+            self.is_oncall_filt(Date, Oncall) &
             (Unavailable == get_unavailable_list(Date, self)) &
             (Holidays == get_onhols_list(Date, self)),
             file=f
@@ -539,7 +605,7 @@ def show(obj, from_date, to_date, from_days, to_days):
         to_date = next_weekday(curr_weekday(), n=to_days)
     # assign_until(to_date)
     for date in date_range(from_date, to_date):
-        res = is_oncall(date, Person).v()
+        res = is_oncall_filt(date, Person).v()
         print('{} : {}'.format(date, res[0] if res else '???'))
 
 
@@ -611,67 +677,4 @@ def print_leaver_instructions(obj):
 pdl.create_terms(*for_pdl.registered_funcs)
 
 if __name__ == '__main__':
-    # cli()
-
-    PERSONS_1 = [
-        ('xxx', 'Mr X', 1, ''),
-    ]
-
-    PERSONS_2 = PERSONS_1 + [
-        ('yyy', 'Mr Y', 2, 'Tue Thu'),
-    ]
-
-    PERSONS_3 = PERSONS_2 + [
-        ('zzz', 'Mr Z', 3, 'Fri'),
-    ]
-
-    DATES_1 = [
-        ('20171127', 'Mon', 'xxx', '', ''),
-    ]
-
-    DATES_2 = DATES_1 + [
-        ('20171128', 'Tue', 'yyy', '', ''),
-    ]
-
-    DATES_3 = DATES_2 + [
-        ('20171129', 'Wed', 'zzz', '', ''),
-    ]
-
-
-    def make_input_file(persons, dates):
-        pp = ['|'.join(str(_) for _ in p) for p in persons]
-        pp = '''
-    PERSON | NAME           | INITIAL_SCORE | RECURRING_WFH_DAYS
-    -------|----------------|---------------|-------------------
-        ''' + '\n'.join(pp)
-
-        dd = ['|'.join(str(_) for _ in d) for d in dates]
-        dd = '''
-    DATE     | DOW | ONCALL | UNAVAILABLE | HOLIDAYS
-    ---------|-----|--------|-------------|---------
-        ''' + '\n'.join(dd)
-
-        return StringIO(pp + dd)
-
-
-    g = (_ for _ in range(1, 1000))
-
-    print('-' * 10, next(g))
-    a = Rota().load(make_input_file(persons=PERSONS_1, dates=DATES_1))
-    print('DUMP:');
-    dump_all()
-
-    print('-' * 10, next(g))
-    b = Rota().load(make_input_file(persons=PERSONS_2, dates=DATES_2))
-    print('DUMP:');
-    dump_all()
-
-    print('-' * 10, next(g))
-    print(len(a))
-    print('DUMP:');
-    dump_all()
-
-    print('-' * 10, next(g))
-    print(len(b))
-    print('DUMP:');
-    dump_all()
+    cli()
