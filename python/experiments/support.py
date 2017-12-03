@@ -123,6 +123,11 @@ def dump_all():
 
 
 @for_pdl
+def join(items):
+    return ' '.join(items)
+
+
+@for_pdl
 def today():
     return datetime.datetime.today().strftime('%Y%m%d')
 
@@ -352,33 +357,37 @@ class Rota:
 
     def persons(self):
         self._check_instance()
-        Person, Name, Score, Days, Rank = make_vars('Person', 'Name', 'Score', 'Days', 'Rank')
-        res = self.person_filt(Person, Name, Score, Days, Rank)
+        Person, Name, Score, WfhList, WfhStr, Rank = make_vars('Person', 'Name', 'Score', 'WfhList', 'WfhStr', 'Rank')
+        temp_persons = pdl.Term('temp_persons')
+        temp_persons(Person, Name, Score, WfhStr, Rank) <= (
+            self.person_filt(Person, Name, Score, WfhList, Rank) & (WfhStr == join(WfhList))
+        )
+        res = temp_persons(Person, Name, Score, WfhStr, Rank)
         return sorted(res.data)
 
     def dates(self):
         self._check_instance()
-        temp = pdl.Term('temp')
+        temp_dates = pdl.Term('temp_dates')
         Date, Dow, Person, Unavailable, Holidays = make_vars('Date', 'Dow', 'Person', 'Unavailable', 'Holidays')
-        temp(Date, Dow, Person, Unavailable, Holidays) <= (
+        temp_dates(Date, Dow, Person, Unavailable, Holidays) <= (
             self.is_oncall_filt(Date, Person) &
             (Dow == get_dow(Date)) &
             (Unavailable == get_unavailable_list(Date, self)) &
             (Holidays == get_onhols_list(Date, self))
         )
-        res = temp(Date, Dow, Person, Unavailable, Holidays)
+        res = temp_dates(Date, Dow, Person, Unavailable, Holidays)
         return sorted(res.data)
 
-    def add_person(self, person, name, initial, wfh_days, rank):
+    def add_person(self, person, name, initial, wfh_str, rank):
         self._check_instance()
-        + self.person_raw(person, name, initial, wfh_days, rank)
+        + self.person_raw(person, name, initial, wfh_str.split(' '), rank)
 
     def remove_person(self, person):
         self._check_instance()
-        Name, Initial, WfhDays, Rank = make_vars('Name', 'Initial', 'WfhDays', 'Rank')
-        res = self.person_raw(person, Name, Initial, WfhDays, Rank)
+        Name, Initial, WfhList, Rank = make_vars('Name', 'Initial', 'WfhList', 'Rank')
+        res = self.person_raw(person, Name, Initial, WfhList, Rank)
         if res:
-            - self.person_raw(person, Name.v(), Initial.v(), WfhDays.v(), Rank.v())
+            - self.person_raw(person, Name.v(), Initial.v(), WfhList.v(), Rank.v())
 
     def assign(self):
         self._check_instance()
@@ -422,10 +431,10 @@ class Rota:
         + initial_score(DUMMY_PERSON, 0)
 
     def _reinit_pdl_predicates(self):
-        Person, Name, Initial, WfhDays, Rank = make_vars('Person', 'Name', 'Initial', 'WfhDays', 'Rank')
+        Person, Name, Initial, WfhList, Rank = make_vars('Person', 'Name', 'Initial', 'WfhList', 'Rank')
         self.person_filt = pdl.Term('person_filt')
-        self.person_filt(Person, Name, Initial, WfhDays, Rank) <= (
-            self.person_raw(Person, Name, Initial, WfhDays, Rank) & (Person != DUMMY_PERSON))
+        self.person_filt(Person, Name, Initial, WfhList, Rank) <= (
+            self.person_raw(Person, Name, Initial, WfhList, Rank) & (Person != DUMMY_PERSON))
 
         Date, Person = make_vars('Date', 'Person')
         self.is_oncall_filt = pdl.Term('is_oncall_filt')
@@ -444,7 +453,7 @@ class Rota:
         )
 
         self.is_wfh = pdl.Term('is_wfh')
-        self.is_wfh(Date, Person) <= self.person_filt(Person, Name, Initial, WfhDays, Rank) & (get_dow(Date) == WfhDays)
+        self.is_wfh(Date, Person) <= self.person_filt(Person, Name, Initial, WfhList, Rank) & get_dow(Date).in_(WfhList)
 
     def _reinit_pdl_functions(self):
         Person, Date, X, Y, Z, A, Initial, Score, Rank = make_vars(
@@ -530,7 +539,7 @@ class Rota:
             elif in_person_section and len(row) >= 4:
                 person_, name_, initial_score_, wfh_days_ = row[:4]
                 rank += 1
-                + self.person_raw(person_, name_, float(initial_score_), wfh_days_, rank)
+                + self.person_raw(person_, name_, float(initial_score_), wfh_days_.split(' '), rank)
             elif in_date_section and len(row) >= 5:
                 date_, dow_, oncall_, unavailable_, onhols_ = row[:5]
                 if oncall_:
@@ -548,11 +557,16 @@ class Rota:
             print(file=f)
             print(file=f)
 
-        Person, Name, Score, WfhDays, Rank = make_vars('PERSON', 'NAME', 'INITIAL', 'RECURRING_WFH_DAYS', 'Rank')
+        Person, Name, Score, WfhList, WfhStr, Rank = make_vars('PERSON', 'NAME', 'INITIAL', 'WfhList', 'RECURRING_WFH_DAYS', 'Rank')
         temp = pdl.Term('temp')
-        temp(Person, Name, Score, WfhDays) <= self.person_filt(Person, Name, Score, WfhDays, Rank)
-        display(temp(Person, Name, Score, WfhDays), file=f)
+        temp(Person, Name, Score, WfhStr) <= (
+            self.person_filt(Person, Name, Score, WfhList, Rank) & (WfhStr == join(WfhList))
+        )
+        display(temp(Person, Name, Score, WfhStr), file=f)
         print(file=f)
+
+
+
 
         Date, Dow, Oncall, Unavailable, Holidays = make_vars('DATE', 'DOW', 'ONCALL', 'UNAVAILABLE', 'HOLIDAYS')
         display(
