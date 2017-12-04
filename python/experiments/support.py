@@ -217,22 +217,28 @@ class Table:
         return Table.format(headers, rows)
 
     def data(self):
+        safe = Table.safe_value
         nrows = len(self.vars[0].data)
-        rows1 = sorted(tuple(var.data[row] for var in self.order_by + self.vars) for row in range(nrows))
+        rows1 = sorted(tuple(safe(var.data[row]) for var in self.order_by + self.vars) for row in range(nrows))
         rows2 = [_[len(self.order_by):] for _ in rows1]
         return rows2
 
     @classmethod
     def format(cls, headers, rows):
+        safe = Table.safe_value
         ncols = len(headers)
         widths_h = [len(header) for header in headers]
-        widths_r = [max(len(str(row[col])) for row in rows) for col in range(ncols)]
+        widths_r = [max(len(str(safe(row[col]))) for row in rows) for col in range(ncols)]
         widths = [max(widths_h[col], widths_r[col]) for col in range(ncols)]
         formats = ['%-{}s'.format(_) for _ in widths]
         header_lines = ['  |  '.join(formats[col] % headers[col] for col in range(ncols))]
         sep_lines = ['--+--'.join('-' * _ for _ in widths)]
-        data_lines = ['  |  '.join(formats[col] % str(row[col]) for col in range(ncols)) for row in rows]
+        data_lines = ['  |  '.join(formats[col] % str(safe(row[col])) for col in range(ncols)) for row in rows]
         return '\n'.join(header_lines + sep_lines + data_lines)
+
+    @classmethod
+    def safe_value(cls, value):
+        return '' if value is None else value
 
 
 class Rota:
@@ -328,6 +334,14 @@ class Rota:
                 res = (Person == self.next_oncall_person[next_date])
                 next_person = res[0][0]
                 + self.is_oncall_raw(next_date, next_person)
+
+    def roll(self, ndays):
+        self._check_instance()
+        dd = today()
+        for _ in range(ndays + 1):
+            if ~self.oncall_date(dd):
+                +self.is_oncall_raw(dd, None)
+            dd = next_weekday(dd)
 
     def _persons_table(self):
         Rank, Person, Name, Score, WfhList, WfhStr = make_vars(
