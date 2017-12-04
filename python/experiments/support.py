@@ -60,45 +60,6 @@ def display(res, file=None):
     print(file=file)
 
 
-# def stats(date=None):
-#     Initial = pdl.Variable('INITIAL')
-#     Oncall = pdl.Variable('ONCALL')
-#     Unavailable = pdl.Variable('UNAVAILABLE')
-#     Onhols = pdl.Variable('HOLIDAYS')
-#     Status = pdl.Variable('STATUS')
-#
-#     date_cond = (Date == date) if date else last_oncall_date(Date)
-#
-#     return (person(Person)) & \
-#            date_cond & \
-#            (Dow == get_dow(Date)) & \
-#            (Score == score[Date, Person]) & \
-#            initial_score(Person, Initial) & \
-#            (Oncall == count_oncall[Date, Person]) & \
-#            (Unavailable == count_unavailable[Date, Person]) & \
-#            (Onhols == count_onhols[Date, Person]) & \
-#            (Status == status[Date, Person])
-#
-#
-# def schedule(from_date=None, to_date=None, no_status=False, no_score=False):
-#     query = oncall_date(Date) & (Dow == get_dow(Date)) & is_oncall_raw(Date, Person)
-#
-#     if from_date:
-#         query &= (Date >= from_date)
-#     if to_date:
-#         query &= (Date <= to_date)
-#
-#     status_vars = {pp: pdl.Variable('STATUS-' + pp) for (pp,) in person(Person).data}
-#     score_vars = {pp: pdl.Variable('SCORE-' + pp) for (pp,) in person(Person).data}
-#     for (pp,) in sorted(person(Person).data):
-#         if not no_status:
-#             query &= (status_vars[pp] == status[Date, pp])
-#         if not no_score:
-#             query &= (score_vars[pp] == score[Date, pp])
-#
-#     return query
-
-
 def dump_facts():
     m = Logic(True)
     for v in sorted(m.Db.values(), key=str):
@@ -179,23 +140,6 @@ def date_range(from_date, to_date):
         if curr_date > to_date:
             break
 
-
-#
-# Logic
-#
-
-# def reinit_pdl_functions2():
-#     The order in which the different possible cases for one function is defined matters. PDL search for an applicable
-#     definition from the last definition to the first. So catch all definitions, etc should be defined first.
-#
-#     global status
-#     status = pdl.Term('status')
-#     status[Date, Person] = '-'
-#     (status[Date, Person] == 'At home') <= (is_at_home(Date, Person))
-#     (status[Date, Person] == 'On hols') <= (is_onhols(Date, Person))
-#     (status[Date, Person] == 'Unavailable') <= (is_unavailable(Date, Person))
-#     (status[Date, Person] == 'Back from hols') <= (is_back_from_hols(Date, Person))
-#     (status[Date, Person] == 'Oncall') <= (is_oncall_raw(Date, Person))
 
 #
 # Rota class
@@ -343,6 +287,47 @@ class Rota:
                 +self.is_oncall_raw(dd, None)
             dd = next_weekday(dd)
 
+    def stats(self, date=None):
+        self._check_instance()
+        Date, Dow, Rank, Person, Name, Score, Initial, Oncall, Unavailable, Holidays, Status, WfhList = make_vars(
+            'DATE', 'DOW', 'Rank', 'PERSON', 'Name', 'SCORE', 'INITIAL', 'ONCALL', 'UNAVAILABLE', 'HOLIDAYS', 'STATUS',
+            'WfhList')
+
+        date_cond = (Date == date) if date else (Date == self.last_oncall_date[None])
+
+        return Table(
+            query=(
+                self.person_filt(Rank, Person, Name, Initial, WfhList) &
+                date_cond &
+                (Dow == get_dow(Date)) &
+                (Score == self.score[Date, Person]) &
+                (Oncall == self.count_oncall[Date, Person]) &
+                (Unavailable == self.count_unavailable[Date, Person]) &
+                (Holidays == self.count_onhols[Date, Person]) &
+                (Status == self.status[Date, Person])
+            ),
+            vars=[Person, Score, Initial, Oncall, Unavailable, Holidays, Status, Date, Dow],
+            order_by=[Person]
+        )
+
+    # def schedule(from_date=None, to_date=None, no_status=False, no_score=False):
+    #     query = oncall_date(Date) & (Dow == get_dow(Date)) & is_oncall_raw(Date, Person)
+    #
+    #     if from_date:
+    #         query &= (Date >= from_date)
+    #     if to_date:
+    #         query &= (Date <= to_date)
+    #
+    #     status_vars = {pp: pdl.Variable('STATUS-' + pp) for (pp,) in person(Person).data}
+    #     score_vars = {pp: pdl.Variable('SCORE-' + pp) for (pp,) in person(Person).data}
+    #     for (pp,) in sorted(person(Person).data):
+    #         if not no_status:
+    #             query &= (status_vars[pp] == status[Date, pp])
+    #         if not no_score:
+    #             query &= (score_vars[pp] == score[Date, pp])
+    #
+    #     return query
+
     def _persons_table(self):
         Rank, Person, Name, Score, WfhList, WfhStr = make_vars(
             'RANK', 'PERSON', 'NAME', 'INITIAL', 'WfhList', 'RECURRING_WFH_DAYS')
@@ -379,9 +364,6 @@ class Rota:
         self.is_unavailable = pdl.Term('is_unavailable')
         + self.is_unavailable(DUMMY_DATE, None)
 
-        initial_score = pdl.Term('initial_score')
-        + initial_score(DUMMY_PERSON, 0)
-
     def _reinit_pdl_predicates(self):
         Rank, Person, Name, Initial, WfhList = make_vars('Rank', 'Person', 'Name', 'Initial', 'WfhList')
         self.person_filt = pdl.Term('person_filt')
@@ -394,7 +376,10 @@ class Rota:
 
         Date, X = make_vars('Date', 'X')
         self.oncall_date = pdl.Term('oncall_date')
-        self.oncall_date(Date) <= self.is_oncall_filt(Date, X)
+        self.oncall_date(Date) <= (
+            self.is_oncall_filt(Date, Person) &
+            self.person_filt(Rank, Person, Name, Initial, WfhList)
+        )
 
         PrevDate, = make_vars('PrevDate')
         self.is_back_from_hols = pdl.Term('is_back_from_hols')
@@ -410,6 +395,14 @@ class Rota:
     def _reinit_pdl_functions(self):
         Person, Date, X, Y, Z, A, Initial, Score, Rank = make_vars(
             'Person', 'Date', 'X', 'Y', 'Z', 'A', 'Initial', 'Score', 'Rank')
+
+        self.status = pdl.Term('status')
+        self.status[Date, Person] = '-'
+        (self.status[Date, Person] == 'At home') <= (self.is_wfh(Date, Person))
+        (self.status[Date, Person] == 'On hols') <= (self.is_onhols(Date, Person))
+        (self.status[Date, Person] == 'Unavailable') <= (self.is_unavailable(Date, Person))
+        (self.status[Date, Person] == 'Back from hols') <= (self.is_back_from_hols(Date, Person))
+        (self.status[Date, Person] == 'Oncall') <= (self.is_oncall_filt(Date, Person))
 
         self.last_oncall_date = pdl.Term('last_oncall_date')
         (self.last_oncall_date[None] == _max(X, order_by=X)) <= self.oncall_date(X)
