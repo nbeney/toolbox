@@ -10,6 +10,7 @@ import csv
 import datetime
 import sys
 
+import itertools
 from pyDatalog import Logic
 from pyDatalog import pyDatalog as pdl
 
@@ -97,13 +98,13 @@ def get_dow(date):
 
 @for_pdl
 def get_unavailable_list(date, rota):
-    Person, = make_vars('Person')
+    Person, = vars(1)
     return ' '.join([_[0] for _ in sorted(rota.is_unavailable(date, Person).data)])
 
 
 @for_pdl
 def get_onhols_list(date, rota):
-    Person, = make_vars('Person')
+    Person, = vars(1)
     return ' '.join([_[0] for _ in sorted(rota.is_onhols(date, Person).data)])
 
 
@@ -145,20 +146,22 @@ def date_range(from_date, to_date):
 # Rota class
 #
 
-def make_vars(*names):
-    return [pdl.Variable(_) for _ in names]
+var_id = itertools.count()
+
+def vars(count):
+    return [pdl.Variable('X{}'.format(next(var_id))) for _ in range(count)]
 
 
 class Table:
-    def __init__(self, query, vars, order_by=[]):
+    def __init__(self, query, vars, order_by=[], headers=[]):
         self.query = query
         self.vars = vars
         self.order_by = order_by or vars
+        self.headers = headers or [_._pyD_name for _ in vars]
 
     def __repr__(self):
-        headers = [_._pyD_name for _ in self.vars]
         rows = self.data()
-        return Table.format(headers, rows)
+        return Table.format(self.headers, rows)
 
     def data(self):
         safe = Table.safe_value
@@ -229,7 +232,7 @@ class Rota:
 
     def __len__(self):
         self._check_instance()
-        Date, Person = make_vars('Date', 'Person')
+        Date, Person = vars(2)
         res = self.is_oncall_filt(Date, Person)
         return len(res.data)
 
@@ -243,20 +246,20 @@ class Rota:
 
     def add_person(self, person, name, initial, wfh_str):
         self._check_instance()
-        A, B, C, D, E = make_vars('A', 'B', 'C', 'D', 'E')
+        A, B, C, D, E = vars(5)
         rank = len(self.person_filt(A, B, C, D, E)) + 1
         + self.person_raw(rank, person, name, initial, wfh_str.split(' '))
 
     def remove_person(self, person):
         self._check_instance()
-        Rank, Name, Initial, WfhList = make_vars('Rank', 'Name', 'Initial', 'WfhList')
+        Rank, Name, Initial, WfhList = vars(4)
         res = self.person_raw(Rank, person, Name, Initial, WfhList)
         if res:
             - self.person_raw(Rank.v(), person, Name.v(), Initial.v(), WfhList.v())
 
     def assign(self):
         self._check_instance()
-        LastDate, NextDate, Any, Person = make_vars('LastDate', 'NextDate', 'Any', 'Person')
+        LastDate, NextDate, Any, Person = vars(4)
 
         date_qry = (LastDate == self.last_oncall_date[None]) & (NextDate == self.next_oncall_date[LastDate])
 
@@ -289,9 +292,7 @@ class Rota:
 
     def stats(self, date=None):
         self._check_instance()
-        Date, Dow, Rank, Person, Name, Score, Initial, Oncall, Unavailable, Holidays, Status, WfhList = make_vars(
-            'DATE', 'DOW', 'Rank', 'PERSON', 'Name', 'SCORE', 'INITIAL', 'ONCALL', 'UNAVAILABLE', 'HOLIDAYS', 'STATUS',
-            'WfhList')
+        Date, Dow, Rank, Person, Name, Score, Initial, Oncall, Unavailable, Holidays, Status, WfhList = vars(12)
 
         date_cond = (Date == date) if date else (Date == self.last_oncall_date[None])
 
@@ -307,7 +308,8 @@ class Rota:
                 (Status == self.status[Date, Person])
             ),
             vars=[Person, Score, Initial, Oncall, Unavailable, Holidays, Status, Date, Dow],
-            order_by=[Person]
+            order_by=[Person],
+            headers=['PERSON', 'SCORE', 'INITIAL', 'ONCALL', 'UNAVAILABLE', 'HOLIDAYS', 'STATUS', 'DATE', 'DOW'],
         )
 
     # def schedule(from_date=None, to_date=None, no_status=False, no_score=False):
@@ -329,17 +331,17 @@ class Rota:
     #     return query
 
     def _persons_table(self):
-        Rank, Person, Name, Score, WfhList, WfhStr = make_vars(
-            'RANK', 'PERSON', 'NAME', 'INITIAL', 'WfhList', 'RECURRING_WFH_DAYS')
+        Rank, Person, Name, Score, WfhList, WfhStr = vars(6)
         res = Table(
             query=self.person_filt(Rank, Person, Name, Score, WfhList) & (WfhStr == join(WfhList)),
             vars=[Person, Name, Score, WfhStr],
             order_by=[Rank, Person],
+            headers=['PERSON', 'NAME', 'INITIAL', 'RECURRING_WFH_DAYS'],
         )
         return res
 
     def _dates_table(self):
-        Date, Dow, Person, Unavailable, Holidays = make_vars('DATE', 'DOW', 'PERSON', 'UNAVAILABLE', 'HOLIDAYS')
+        Date, Dow, Person, Unavailable, Holidays = vars(5)
         res = Table(
             query=(
                 self.is_oncall_filt(Date, Person) &
@@ -348,6 +350,7 @@ class Rota:
                 (Holidays == get_onhols_list(Date, self))
             ),
             vars=[Date, Dow, Person, Unavailable, Holidays],
+            headers=['DATE', 'DOW', 'ONCALL', 'UNAVAILABLE', 'HOLIDAYS'],
         )
         return res
 
@@ -365,23 +368,23 @@ class Rota:
         + self.is_unavailable(DUMMY_DATE, None)
 
     def _reinit_pdl_predicates(self):
-        Rank, Person, Name, Initial, WfhList = make_vars('Rank', 'Person', 'Name', 'Initial', 'WfhList')
+        Rank, Person, Name, Initial, WfhList = vars(5)
         self.person_filt = pdl.Term('person_filt')
         self.person_filt(Rank, Person, Name, Initial, WfhList) <= (
             self.person_raw(Rank, Person, Name, Initial, WfhList) & (Person != DUMMY_PERSON))
 
-        Date, Person = make_vars('Date', 'Person')
+        Date, Person = vars(2)
         self.is_oncall_filt = pdl.Term('is_oncall_filt')
         self.is_oncall_filt(Date, Person) <= self.is_oncall_raw(Date, Person) & (Date != DUMMY_DATE)
 
-        Date, X = make_vars('Date', 'X')
+        Date, X = vars(2)
         self.oncall_date = pdl.Term('oncall_date')
         self.oncall_date(Date) <= (
             self.is_oncall_filt(Date, Person) &
             self.person_filt(Rank, Person, Name, Initial, WfhList)
         )
 
-        PrevDate, = make_vars('PrevDate')
+        PrevDate, = vars(1)
         self.is_back_from_hols = pdl.Term('is_back_from_hols')
         self.is_back_from_hols(Date, Person) <= (
             ~self.is_onhols(Date, Person) &
@@ -393,8 +396,7 @@ class Rota:
         self.is_wfh(Date, Person) <= self.person_filt(Rank, Person, Name, Initial, WfhList) & get_dow(Date).in_(WfhList)
 
     def _reinit_pdl_functions(self):
-        Person, Date, X, Y, Z, A, Initial, Score, Rank = make_vars(
-            'Person', 'Date', 'X', 'Y', 'Z', 'A', 'Initial', 'Score', 'Rank')
+        Person, Date, X, Y, Z, A, Initial, Score, Rank = vars(9)
 
         self.status = pdl.Term('status')
         self.status[Date, Person] = '-'
