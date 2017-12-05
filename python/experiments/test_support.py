@@ -137,6 +137,21 @@ class TestRota_Core(unittest.TestCase):
         r.remove_person(person)
         self.assertEqual(r.persons(), PERSONS_3)
 
+    def test_roll(self):
+        r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_1))
+        N = 10
+        r.roll(N)
+        self.assertEqual(len(r), len(DATES_1) + N + 1)
+
+    def test_stats(self):
+        r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_1))
+        r.roll(10)
+        print(r._dates_table())
+        print()
+        print(r.stats())
+        print()
+        print(r.stats('20171128'))
+
 
 class TestRota_Assign(unittest.TestCase):
     def test_assign_from_empty(self):
