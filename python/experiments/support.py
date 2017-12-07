@@ -8,9 +8,9 @@ from __future__ import print_function
 
 import csv
 import datetime
+import itertools
 import sys
 
-import itertools
 from pyDatalog import Logic
 from pyDatalog import pyDatalog as pdl
 
@@ -147,6 +147,7 @@ def date_range(from_date, to_date):
 #
 
 var_id = itertools.count()
+
 
 def vars(count):
     return [pdl.Variable('X{}'.format(next(var_id))) for _ in range(count)]
@@ -312,23 +313,41 @@ class Rota:
             headers=['PERSON', 'SCORE', 'INITIAL', 'ONCALL', 'UNAVAILABLE', 'HOLIDAYS', 'STATUS', 'DATE', 'DOW'],
         )
 
-    # def schedule(from_date=None, to_date=None, no_status=False, no_score=False):
-    #     query = oncall_date(Date) & (Dow == get_dow(Date)) & is_oncall_raw(Date, Person)
-    #
-    #     if from_date:
-    #         query &= (Date >= from_date)
-    #     if to_date:
-    #         query &= (Date <= to_date)
-    #
-    #     status_vars = {pp: pdl.Variable('STATUS-' + pp) for (pp,) in person(Person).data}
-    #     score_vars = {pp: pdl.Variable('SCORE-' + pp) for (pp,) in person(Person).data}
-    #     for (pp,) in sorted(person(Person).data):
-    #         if not no_status:
-    #             query &= (status_vars[pp] == status[Date, pp])
-    #         if not no_score:
-    #             query &= (score_vars[pp] == score[Date, pp])
-    #
-    #     return query
+    def schedule(self, from_date=None, to_date=None, no_status=False, no_score=False):
+        if from_date is None and to_date is None:
+            from_date = today()
+
+        Date, Dow, Rank, Person, Name, Initial, WfhList = vars(7)
+        query = self.oncall_date(Date) & (Dow == get_dow(Date)) & self.is_oncall_raw(Date, Person)
+
+        if from_date:
+            query &= (Date >= from_date)
+        if to_date:
+            query &= (Date <= to_date)
+
+        person = pdl.Term('person')
+        person(Person) <= self.person_filt(Rank, Person, Name, Initial, WfhList)
+
+        vars_ = [Date, Dow, Person]
+        headers = ['DATE', 'DOW', 'ONCALL']
+
+        status_vars = {pp: pdl.Variable('STATUS-' + pp) for (pp,) in person(Person).data}
+        score_vars = {pp: pdl.Variable('SCORE-' + pp) for (pp,) in person(Person).data}
+        for (pp,) in sorted(person(Person).data):
+            if not no_status:
+                query &= (status_vars[pp] == self.status[Date, pp])
+                vars_.append(status_vars[pp])
+                headers.append(status_vars[pp]._pyD_name)
+            if not no_score:
+                query &= (score_vars[pp] == self.score[Date, pp])
+                vars_.append(score_vars[pp])
+                headers.append(score_vars[pp]._pyD_name)
+
+        return Table(
+            query=query,
+            vars=vars_,
+            headers=headers,
+        )
 
     def _persons_table(self):
         Rank, Person, Name, Score, WfhList, WfhStr = vars(6)
