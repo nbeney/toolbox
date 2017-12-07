@@ -42,3 +42,5 @@ fi
 # if [ -d "${HOME}/info" ]; then
 #   INFOPATH="${HOME}/info:${INFOPATH}"
 # fi
+
+export PATH="$HOME/.cargo/bin:$PATH"
