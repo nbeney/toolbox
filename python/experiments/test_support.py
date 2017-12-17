@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os
+import re
 import unittest
 from io import StringIO
 
@@ -56,7 +56,8 @@ DATE     | DOW | ONCALL | UNAVAILABLE | HOLIDAYS
 
 def file_line_count(path):
     with open(path, 'r') as f:
-        return len([None for _ in f if not (_.strip() == '' or _.startswith('#') or _.startswith('--'))])
+        return len([None for _ in f if not (
+            _.strip() == '' or _.strip().startswith('#') or _.strip().startswith('--'))])
 
 
 def file_contains(path, text):
@@ -64,42 +65,12 @@ def file_contains(path, text):
         return any(text in _ for _ in f)
 
 
-# class TestEngine(unittest.TestCase):
-#     def test_last_oncall_date_from_empty(self):
-#         _reinit_pdl(make_input_file([], []))
-#         LastDate = pdl.Variable('Last Date')
-#         res = support.last_oncall_date(LastDate) & (LastDate != DUMMY_DATE)
-#         self.assertEqual(res, [])
-#
-#     def test_last_oncall_date_from_one(self):
-#         _reinit_pdl(make_input_file([], [('20171129', None, 'xxx', None, None)]))
-#         LastDate = pdl.Variable('Last Date')
-#         res = support.last_oncall_date(LastDate) & (LastDate != DUMMY_DATE)
-#         self.assertEqual(res[0][0], '20171129')
-#
-#     def test_last_oncall_date_from_many(self):
-#         _reinit_pdl(make_input_file([], DATES_3))
-#         LastDate = pdl.Variable('Last Date')
-#         res = support.last_oncall_date(LastDate) & (LastDate != DUMMY_DATE)
-#         self.assertEqual(res[0][0], '20171129')
-#
-#     def test_next_oncall_date_from_empty(self):
-#         _reinit_pdl(make_input_file([], []))
-#         NextDate = pdl.Variable('Next Date')
-#         res = support.next_oncall_date(NextDate) & (NextDate != DUMMY_DATE)
-#         self.assertEqual(res, [])
-#
-#     def test_next_oncall_date_from_one(self):
-#         _reinit_pdl(make_input_file([], [('20171129', None, 'xxx', None, None)]))
-#         NextDate = pdl.Variable('Next Date')
-#         res = support.next_oncall_date(NextDate) & (NextDate != DUMMY_DATE)
-#         self.assertEqual(res[0][0], '20171130')
-#
-#     def test_next_oncall_date_from_many(self):
-#         _reinit_pdl(make_input_file([], DATES_3))
-#         NextDate = pdl.Variable('Next Date')
-#         res = support.next_oncall_date(NextDate) & (NextDate != DUMMY_DATE)
-#         self.assertEqual(res[0][0], '20171130')
+def file_contents(path):
+    with open(path, 'r') as f:
+        result = ''.join(f.readlines())
+        result = re.sub(r'\s*\|\s*', ' | ', result)
+        result = re.sub(r'\s+', ' ', result)
+        return result
 
 
 class TestRota_Core(unittest.TestCase):
@@ -152,6 +123,14 @@ class TestRota_Core(unittest.TestCase):
         print()
         print(r.stats('20171128'))
 
+    def test_schedule(self):
+        r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3))
+        N = 10
+        for _ in range(N):
+            r.assign()
+        r.roll(N)
+        print(r.schedule())
+
 
 class TestRota_Assign(unittest.TestCase):
     def test_assign_from_empty(self):
@@ -168,7 +147,6 @@ class TestRota_Assign(unittest.TestCase):
         self.assertEqual(dd[1][2], 'yyy')
         self.assertEqual(dd[2][2], 'zzz')
 
-
     def test_assign_with_wfh(self):
         r = Rota()
         r.add_person('xxx', 'Mr X', 0, 'Mon')
@@ -178,10 +156,9 @@ class TestRota_Assign(unittest.TestCase):
         for _ in range(N):
             r.assign()
         r.add_person('aaa', 'Mr A', 0, '')
-        r.save(None)
         self.assertEqual(len(r), N)
-        self.assertFalse(any(oncall == 'xxx' and dow in 'Mon'  for date, dow, oncall, unavail, hols in r.dates()))
-        self.assertFalse(any(oncall == 'yyy' and dow in 'Tue Wed'  for date, dow, oncall, unavail, hols in r.dates()))
+        self.assertFalse(any(oncall == 'xxx' and dow in 'Mon' for date, dow, oncall, unavail, hols in r.dates()))
+        self.assertFalse(any(oncall == 'yyy' and dow in 'Tue Wed' for date, dow, oncall, unavail, hols in r.dates()))
 
 
 class TestRota_LoadAndSave(unittest.TestCase):
@@ -225,12 +202,12 @@ class TestRota_LoadAndSave(unittest.TestCase):
         r = Rota().load(make_input_file(persons=[], dates=DATES_2))
         self.assertEqual(len(r), len(DATES_2))
 
-    # def test_save_none(self):
-    #     r = Rota().save(None)
-    #     r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(None)
+    def test_save_none(self):
+        r = Rota().save(None)
+        r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(None)
 
     def test_save_file(self):
-        with CliRunner().isolated_filesystem():
+        with CliRunner().isolated_filesystem() as dir_path:
             path = 'test_support1.txt'
             r = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(path)
             self.assertTrue(os.path.exists(path))
@@ -242,7 +219,7 @@ class TestRota_LoadAndSave(unittest.TestCase):
             self.assertFalse(file_contains(path, 'not defined'), 0)
 
     def test_save_load(self):
-        with CliRunner().isolated_filesystem():
+        with CliRunner().isolated_filesystem() as dir_path:
             path = 'test_support2.txt'
             saved = Rota().load(make_input_file(persons=PERSONS_3, dates=DATES_3)).save(path)
             loaded = Rota().load(path)
@@ -253,41 +230,136 @@ class TestRota_LoadAndSave(unittest.TestCase):
             self.assertEqual(loaded.persons(), PERSONS_3)
             self.assertEqual(loaded.dates(), DATES_3)
 
-# class TestCLI(unittest.TestCase):
-#     def test_print_sample_file(self):
-#         runner = CliRunner()
-#         result = runner.invoke(cli, ['print-sample-file'])
-#         self.assertEqual(result.exit_code, 0)
-#         self.assertIn('#', result.output)
-#         self.assertIn('PERSON', result.output)
-#         self.assertIn('DATE', result.output)
-#
-#     def test_print_joiner_instructions(self):
-#         runner = CliRunner()
-#         result = runner.invoke(cli, ['print-joiner-instructions'])
-#         self.assertEqual(result.exit_code, 0)
-#
-#     def test_print_leaver_instructions(self):
-#         runner = CliRunner()
-#         result = runner.invoke(cli, ['print-leaver-instructions'])
-#         self.assertTrue(result.exit_code == 0)
-#
-#     def test_assign(self):
-#         runner = CliRunner()
-#         result = runner.invoke(cli, ['assign'])
-#         self.assertEqual(result.exit_code, 0)
-#
-#     def test_show(self):
-#         runner = CliRunner()
-#         result = runner.invoke(cli, ['show'])
-#         self.assertEqual(result.exit_code, 0)
-#
-#     def test_status(self):
-#         runner = CliRunner()
-#         result = runner.invoke(cli, ['status'])
-#         self.assertEqual(result.exit_code, 0)
-#
-#     def test_summary(self):
-#         runner = CliRunner()
-#         result = runner.invoke(cli, ['summary'])
-#         self.assertEqual(result.exit_code, 0)
+
+class TestCLI(unittest.TestCase):
+    def test_help(self):
+        result = CliRunner().invoke(cli, ['help'])
+        self.assertEqual(result.exit_code, 0)
+        print(result.output)
+
+    def test_sample_file(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            result = CliRunner().invoke(cli, ['sample-file'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn('#', result.output)
+            self.assertIn('PERSON', result.output)
+            self.assertIn('DATE', result.output)
+
+    def test_assign(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+            before = file_line_count(path)
+            result = CliRunner().invoke(cli, ['-f', path, 'assign'])
+            self.assertEqual(result.exit_code, 0)
+            after = file_line_count(path)
+            self.assertEqual(after, before + 1)
+
+    def test_show(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+            result = CliRunner().invoke(cli, ['-f', path, 'show'])
+            self.assertEqual(result.exit_code, 0)
+
+    def test_status(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+            result = CliRunner().invoke(cli, ['-f', path, 'status'])
+            self.assertEqual(result.exit_code, 0)
+
+    def test_summary(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+            result = CliRunner().invoke(cli, ['-f', path, 'summary'])
+            self.assertEqual(result.exit_code, 0)
+
+    def test_add_person(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            result = CliRunner().invoke(cli, ['-f', path, 'add-person', 'xxx', 'Mr X', '0', ''])
+            self.assertEqual(result.exit_code, 0)
+            self.assertTrue(file_contains(path, 'Mr X'))
+
+    def test_remove_person(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+            self.assertTrue(file_contains(path, 'Alice Anderson'))
+            result = CliRunner().invoke(cli, ['-f', path, 'remove-person', 'alice'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertFalse(file_contains(path, 'Alice Anderson'))
+
+    def test_set_initial(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+            self.assertIn('alice | Alice Anderson | 0.0', file_contents(path))
+            result = CliRunner().invoke(cli, ['-f', path, 'set-initial', 'alice', '1.5'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn('alice | Alice Anderson | 1.5', file_contents(path))
+
+    def test_set_wfh_days(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+            self.assertNotIn('alice | Alice Anderson | 0.0 | Mon Thu', file_contents(path))
+            result = CliRunner().invoke(cli, ['-f', path, 'set-wfh-days', 'alice', 'Mon Thu'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn('alice | Alice Anderson | 0.0 | Mon Thu', file_contents(path))
+
+    def test_set_oncall(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+
+            result = CliRunner().invoke(cli, ['-f', path, 'set-oncall', 'alice', '20171218', '1'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn('20171218 | Mon | alice', file_contents(path))
+
+            result = CliRunner().invoke(cli, ['-f', path, 'set-oncall', 'alice', '20171218', '0'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertNotIn('20171218 | Mon | alice', file_contents(path))
+
+    def test_set_unavailable(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+
+            result = CliRunner().invoke(cli, ['-f', path, 'set-unavailable', 'alice', '20171218', '1'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn('20171218 | Mon | | alice', file_contents(path))
+
+            result = CliRunner().invoke(cli, ['-f', path, 'set-unavailable', 'alice', '20171218', '0'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertNotIn('20171218 | Mon | | alice', file_contents(path))
+
+    def test_set_holidays(self):
+        with CliRunner().isolated_filesystem() as dir_path:
+            path = 'test.txt'
+            self._create_file(path)
+
+            result = CliRunner().invoke(cli, ['-f', path, 'set-holidays', 'alice', '20171218', '1'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertIn('20171218 | Mon | | | alice', file_contents(path))
+
+            result = CliRunner().invoke(cli, ['-f', path, 'set-holidays', 'alice', '20171218', '0'])
+            self.assertEqual(result.exit_code, 0)
+            self.assertNotIn('20171218 | Mon | | | alice', file_contents(path))
+
+    def _create_file(self, path):
+        with open(path, 'w') as f:
+            print('''
+PERSON  |  NAME             | INITIAL_SCORE   |  RECURRING_WFH_DAYS
+--------+-------------------+-----------------+--------------------
+alice   |  Alice Anderson   | 0.0             |
+benno   |  Benno Brown      | 1.0             |  Fri
+chloe   |  Chloe Church     | 1.4             |
+david   |  David Davidson   | 0.0             |  Tue Thu
+ellen   |  Ellen Eleanor    | 0.0             |
+
+DATE     | DOW | ONCALL   | UNAVAILABLE | HOLIDAYS
+---------+-----+----------+-------------+---------
+                '''[1:], file=f)
