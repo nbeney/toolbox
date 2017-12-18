@@ -1,20 +1,16 @@
-# TODO: Add empty dates to file
-# TODO: Schedule for next days
-
-# This script must be updated when people join or leave the CBTech team. Search for the 'MAINTENANCE' string in this
-# file to find out where changes are required.
-
 from __future__ import print_function
 
 import csv
 import datetime
-import sys
-
 import itertools
+import os
+import sys
+from collections import namedtuple
+
 from pyDatalog import Logic
 from pyDatalog import pyDatalog as pdl
 
-from cbclick import group, option, pass_context, pass_obj
+from cbclick import group, option, argument, pass_context, pass_obj
 
 # For convenience only so that we can type pdl.Term later.
 pdl.Term = pdl.pyParser.Term
@@ -33,13 +29,13 @@ SAMPLE_FILE = '''
 #  ...
 
 
-PERSON  | NAME             | INITIAL_SCORE | RECURRING_WFH_DAYS
---------+------------------+---------------+-------------------
-alice   | Alice Anderson   | 0             |
-benno   | Benno Brown      | 1             | Fri
-chloe   | Chloe Church     | 1.4           |
-david   | David Davidson   | 0             | Tue Thu
-ellen   | Ellen Eleanor    | 0             |
+PERSON  |  NAME             |  INITIAL_SCORE  |  RECURRING_WFH_DAYS
+--------+-------------------+-----------------+--------------------
+alice   |  Alice Anderson   |  0              |
+benno   |  Benno Brown      |  1              |  Fri
+chloe   |  Chloe Church     |  1.4            |
+david   |  David Davidson   |  0              |  Tue Thu
+ellen   |  Ellen Eleanor    |  0              |
 
 
 DATE     | DOW | ONCALL   | UNAVAILABLE | HOLIDAYS
@@ -148,6 +144,7 @@ def date_range(from_date, to_date):
 
 var_id = itertools.count()
 
+
 def vars(count):
     return [pdl.Variable('X{}'.format(next(var_id))) for _ in range(count)]
 
@@ -175,7 +172,7 @@ class Table:
         safe = Table.safe_value
         ncols = len(headers)
         widths_h = [len(header) for header in headers]
-        widths_r = [max(len(str(safe(row[col]))) for row in rows) for col in range(ncols)]
+        widths_r = [max(len(str(safe(row[col]))) for row in rows) for col in range(ncols)] if rows else [0] * ncols
         widths = [max(widths_h[col], widths_r[col]) for col in range(ncols)]
         formats = ['%-{}s'.format(_) for _ in widths]
         header_lines = ['  |  '.join(formats[col] % headers[col] for col in range(ncols))]
@@ -249,6 +246,7 @@ class Rota:
         A, B, C, D, E = vars(5)
         rank = len(self.person_filt(A, B, C, D, E)) + 1
         + self.person_raw(rank, person, name, initial, wfh_str.split(' '))
+        return self
 
     def remove_person(self, person):
         self._check_instance()
@@ -256,6 +254,53 @@ class Rota:
         res = self.person_raw(Rank, person, Name, Initial, WfhList)
         if res:
             - self.person_raw(Rank.v(), person, Name.v(), Initial.v(), WfhList.v())
+        return self
+
+    def set_initial(self, person, initial):
+        self._check_instance()
+        Rank, Name, Initial, WfhList = vars(4)
+        res = self.person_raw(Rank, person, Name, Initial, WfhList)
+        if res:
+            - self.person_raw(Rank.v(), person, Name.v(), Initial.v(), WfhList.v())
+            + self.person_raw(Rank.v(), person, Name.v(), initial, WfhList.v())
+        return self
+
+    def set_wfh_list(self, person, wfh_list):
+        self._check_instance()
+        Rank, Name, Initial, WfhList = vars(4)
+        res = self.person_raw(Rank, person, Name, Initial, WfhList)
+        if res:
+            - self.person_raw(Rank.v(), person, Name.v(), Initial.v(), WfhList.v())
+            + self.person_raw(Rank.v(), person, Name.v(), Initial.v(), wfh_list)
+        return self
+
+    def set_oncall(self, person, date, flag):
+        self._check_instance()
+        if flag:
+            + self.is_oncall_raw(date, person)
+        else:
+            - self.is_oncall_raw(date, person)
+        return self
+
+    def set_unavailable(self, person, date, flag):
+        self._check_instance()
+        if flag:
+            + self.is_unavailable(date, person)
+            if ~self.oncall_date(date):
+                + self.is_oncall_raw(date, None)
+        else:
+            - self.is_unavailable(date, person)
+        return self
+
+    def set_holidays(self, person, date, flag):
+        self._check_instance()
+        if flag:
+            + self.is_onhols(date, person)
+            if ~self.oncall_date(date):
+                + self.is_oncall_raw(date, None)
+        else:
+            - self.is_onhols(date, person)
+        return self
 
     def assign(self):
         self._check_instance()
@@ -282,13 +327,20 @@ class Rota:
                 next_person = res[0][0]
                 + self.is_oncall_raw(next_date, next_person)
 
+        return self
+
+    def assign_until(self, to_date):
+        pass
+
     def roll(self, ndays):
         self._check_instance()
         dd = today()
         for _ in range(ndays + 1):
             if ~self.oncall_date(dd):
-                +self.is_oncall_raw(dd, None)
+                + self.is_oncall_raw(dd, None)
             dd = next_weekday(dd)
+
+        return self
 
     def stats(self, date=None):
         self._check_instance()
@@ -312,23 +364,41 @@ class Rota:
             headers=['PERSON', 'SCORE', 'INITIAL', 'ONCALL', 'UNAVAILABLE', 'HOLIDAYS', 'STATUS', 'DATE', 'DOW'],
         )
 
-    # def schedule(from_date=None, to_date=None, no_status=False, no_score=False):
-    #     query = oncall_date(Date) & (Dow == get_dow(Date)) & is_oncall_raw(Date, Person)
-    #
-    #     if from_date:
-    #         query &= (Date >= from_date)
-    #     if to_date:
-    #         query &= (Date <= to_date)
-    #
-    #     status_vars = {pp: pdl.Variable('STATUS-' + pp) for (pp,) in person(Person).data}
-    #     score_vars = {pp: pdl.Variable('SCORE-' + pp) for (pp,) in person(Person).data}
-    #     for (pp,) in sorted(person(Person).data):
-    #         if not no_status:
-    #             query &= (status_vars[pp] == status[Date, pp])
-    #         if not no_score:
-    #             query &= (score_vars[pp] == score[Date, pp])
-    #
-    #     return query
+    def schedule(self, from_date=None, to_date=None, no_status=False, no_score=False):
+        if from_date is None and to_date is None:
+            from_date = today()
+
+        Date, Dow, Rank, Person, Name, Initial, WfhList = vars(7)
+        query = self.oncall_date(Date) & (Dow == get_dow(Date)) & self.is_oncall_raw(Date, Person)
+
+        if from_date:
+            query &= (Date >= from_date)
+        if to_date:
+            query &= (Date <= to_date)
+
+        person = pdl.Term('person')
+        person(Person) <= self.person_filt(Rank, Person, Name, Initial, WfhList)
+
+        vars_ = [Date, Dow, Person]
+        headers = ['DATE', 'DOW', 'ONCALL']
+
+        status_vars = {pp: pdl.Variable('STATUS-' + pp) for (pp,) in person(Person).data}
+        score_vars = {pp: pdl.Variable('SCORE-' + pp) for (pp,) in person(Person).data}
+        for (pp,) in sorted(person(Person).data):
+            if not no_status:
+                query &= (status_vars[pp] == self.status[Date, pp])
+                vars_.append(status_vars[pp])
+                headers.append(status_vars[pp]._pyD_name)
+            if not no_score:
+                query &= (score_vars[pp] == self.score[Date, pp])
+                vars_.append(score_vars[pp])
+                headers.append(score_vars[pp]._pyD_name)
+
+        return Table(
+            query=query,
+            vars=vars_,
+            headers=headers,
+        )
 
     def _persons_table(self):
         Rank, Person, Name, Score, WfhList, WfhStr = vars(6)
@@ -521,24 +591,92 @@ class Rota:
 # Command line interface
 #
 
-@group(context_settings=dict(terminal_width=200), help='Manage our support rota.')
+Common = namedtuple('Common', ['file'])
+
+
+@group(context_settings=dict(terminal_width=200, help_option_names=['-h', '--help']), help='Manage our support rota.')
 @option('-f', '--file', default='./support.txt', show_default=True,
         help='The CSV file used to keep track of assignments, holidays, etc.')
 @pass_context
 def cli(ctx, file):
-    with open(file, 'r') as f:
-        reinit_pdl(f)
-    ctx.obj = dict(file=file)
+    ctx.obj = Common(file=file)
+
+
+@cli.command(help='Print the full help.')
+@pass_context
+def help(ctx):
+    separator = '\n' + '-' * 79 + '\n'
+    print(ctx.parent.get_help())
+    for name, cmd in sorted(ctx.parent.command.commands.items()):
+        print(separator)
+        print(cmd.get_help(ctx).replace('support.py help', 'support.py ' + name))
+
+
+@cli.command(help='Add a person to the rota.')
+@argument('person')
+@argument('name')
+@argument('initial', type=float)
+@argument('wfh_str')
+@pass_obj
+def add_person(obj, person, name, initial, wfh_str):
+    r = Rota().load(obj.file) if os.path.exists(obj.file) else Rota()
+    r.add_person(person, name, initial, wfh_str).save(obj.file)
+
+
+@cli.command(help='Remove a person from the rota.')
+@argument('person')
+@pass_obj
+def remove_person(obj, person):
+    Rota().load(obj.file).remove_person(person).save(obj.file)
+
+
+@cli.command(help='Set the initial score for a person.')
+@argument('person')
+@argument('initial', type=float)
+@pass_obj
+def set_initial(obj, person, initial):
+    Rota().load(obj.file).set_initial(person, initial).save(obj.file)
+
+
+@cli.command(help='Set the WFH days for a person.')
+@argument('person')
+@argument('wfh_str')
+@pass_obj
+def set_wfh_days(obj, person, wfh_str):
+    Rota().load(obj.file).set_wfh_list(person, wfh_str.split(' ')).save(obj.file)
+
+
+@cli.command(help='Set the oncall status for a person on a date.')
+@argument('person')
+@argument('date')
+@argument('flag', type=bool)
+@pass_obj
+def set_oncall(obj, date, person, flag):
+    Rota().load(obj.file).set_oncall(person, date, flag).save(obj.file)
+
+
+@cli.command(help='Set the unavailable status for a person on a date.')
+@argument('person')
+@argument('date')
+@argument('flag', type=bool)
+@pass_obj
+def set_unavailable(obj, date, person, flag):
+    Rota().load(obj.file).set_unavailable(person, date, flag).save(obj.file)
+
+
+@cli.command(help='Set the holidays status for a person on a date.')
+@argument('person')
+@argument('date')
+@argument('flag', type=bool)
+@pass_obj
+def set_holidays(obj, date, person, flag):
+    Rota().load(obj.file).set_holidays(person, date, flag).save(obj.file)
 
 
 @cli.command(help='Assign the next oncall person.')
 @pass_obj
 def assign(obj):
-    display(stats())
-    assign_next()
-    display(schedule())
-    display(stats())
-    write_facts_to_file(obj['file'])
+    Rota().load(obj.file).assign().save(obj.file)
 
 
 @cli.command(help='Show who is oncall.')
@@ -555,10 +693,11 @@ def show(obj, from_date, to_date, from_days, to_days):
         from_date = prev_weekday(curr_weekday(), n=from_days)
     if to_days is not None:
         to_date = next_weekday(curr_weekday(), n=to_days)
-    # assign_until(to_date)
-    for date in date_range(from_date, to_date):
-        res = is_oncall_filt(date, Person).v()
-        print('{} : {}'.format(date, res[0] if res else '???'))
+    r = Rota().load(obj.file)
+    r.assign_until(to_date)
+    # for date in date_range(from_date, to_date):
+    #     res = is_oncall_filt(date, Person).v()
+    #     print('{} : {}'.format(date, res[0] if res else '???'))
 
 
 @cli.command(help='Show the status for each person.')
@@ -575,9 +714,10 @@ def status(obj, from_date, to_date, from_days, to_days):
         from_date = prev_weekday(curr_weekday(), n=from_days)
     if to_days is not None:
         to_date = next_weekday(curr_weekday(), n=to_days)
-    # assign_until(to_date)
-    for date in date_range(from_date, to_date):
-        display(stats(date))
+    r = Rota().load(obj.file)
+    r.assign_until(to_date)
+    # for date in date_range(from_date, to_date):
+    #     display(stats(date))
 
 
 @cli.command(help='Show the summary.')
@@ -597,28 +737,15 @@ def summary(obj, from_date, to_date, from_days, to_days, no_status, no_score):
         from_date = prev_weekday(curr_weekday(), n=from_days)
     if to_days is not None:
         to_date = next_weekday(curr_weekday(), n=to_days)
-    # assign_until(to_date)
-    display(schedule(from_date, to_date, no_status, no_score))
+    r = Rota().load(obj.file)
+    r.assign_until(to_date)
+    # display(schedule(from_date, to_date, no_status, no_score))
 
 
 @cli.command(help='Print the a sample file to help you getting started.')
 @pass_obj
-def print_sample_file(obj):
+def sample_file(obj):
     print(SAMPLE_FILE)
-
-
-@cli.command(help='Print the instructions for a joiner.')
-@pass_obj
-def print_joiner_instructions(obj):
-    # TODO: Implement print_instructions_for_joiner
-    pass
-
-
-@cli.command(help='Print the instructions for a leaver.')
-@pass_obj
-def print_leaver_instructions(obj):
-    # TODO: Implement print_instructions_for_leaver
-    pass
 
 
 #
