@@ -1,52 +1,69 @@
 from __future__ import print_function
 
+from pyDatalog import Logic
 from pyDatalog import pyDatalog as pdl
 
-
-def distinct(*args):
-    print(len(set(args)), len(args))
-    return len(set(args)) == len(args)
+# For convenience only so that we can type pdl.Term later.
+pdl.Term = pdl.pyParser.Term
 
 
-def total(*args):
-    return sum(args)
+def dump_all():
+    m = Logic(True)
+    for v in sorted(m.Db.values(), key=str):
+        for c in v.db.values():
+            if not c.body:
+                print('+', c.head)
+            else:
+                print(c.head, '<=', c.body)
 
 
-pdl.create_terms('distinct', 'total')
+def make_vars(*names):
+    return [pdl.Variable(_) for _ in names]
 
-pdl.load('''
-    digit(X) <= (X.in_([1, 2, 3, 4, 5, 6, 7, 8, 9]))
 
-    print((
-        digit(A) & \
-        digit(B) & \
-        (A < B) & \
-        digit(C) & \
-        (B < C) & \
-        (total(A, B, C) == 18)
-    ).sort())
-''')
-#
-# pdl.load('''
-#     digit(X) <= (X.in_([1, 2, 3, 4, 5, 6, 7, 8, 9]))
-#
-#     print((
-#         digit(A) & \
-#         digit(B) & \
-#         digit(C) & \
-#         digit(D) & \
-#         digit(E) & \
-#         digit(F) & \
-#         digit(G) & \
-#         digit(H) & \
-#         digit(I) & \
-#         ((A + B + C) == 15) & \
-#         ((C + D + E) == 15) & \
-#         ((F + G + I) == 15) & \
-#         ((A + C + F) == 15) & \
-#         ((B + D + G) == 15) & \
-#         ((C + E + I) == 15) & \
-#         ((A + D + I) == 15) & \
-#         ((F + D + C) == 15)
-#     ).sort())
-# ''')
+class C:
+    def _save_new_logic(self):
+        self._logic = Logic()
+
+    def _restore_saved_logic(self):
+        Logic(self._logic)
+
+    def __init__(self, name, val):
+        self._save_new_logic()
+
+        self.fact = pdl.Term(name + '-fact')
+        + self.fact(val)
+
+        self.pred = pdl.Term(name + '-pred')
+        X, Y = make_vars('X', 'Y')
+        self.pred(X) <= self.fact(Y) & (X == 2 * Y)
+
+    def m(self):
+        self._restore_saved_logic()
+        X,  = make_vars('X')
+        print(self.fact(X).data)
+        print(self.pred(X).data)
+
+
+if __name__ == '__main__':
+    g = (_ for _ in range(1, 1000))
+
+    print('-' * 10, next(g))
+    a = C('aaa', 1)
+    dump_all()
+
+    print('-' * 10, next(g))
+    b = C('bbb', 2)
+    dump_all()
+
+    print('-' * 10, next(g))
+    a.m()
+    dump_all()
+
+    print('-' * 10, next(g))
+    b.m()
+    dump_all()
+
+    print('-' * 10, next(g))
+    a.m()
+    dump_all()

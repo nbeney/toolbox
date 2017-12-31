@@ -9,6 +9,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        jira=cbjira:cli
+        jira=cbjira:topcli
     ''',
 )
