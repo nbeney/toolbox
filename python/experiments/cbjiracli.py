@@ -387,7 +387,7 @@ def edit_version(jf, username, email):
 @usercli.command(name='search', help='List all the users matching the provided a string (username, full name, email).')
 @click.option('-f', '--filter', help='Match on any part (username, full name, email)')
 @click.pass_obj
-def search_user(jf, filter):
+def search_users(jf, filter):
     users = jf.search_users(filter)
 
     for _ in users:
