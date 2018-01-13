@@ -131,13 +131,13 @@ def componentcli(ctx):
     pass
 
 
-@componentcli.command(name='add', help='Add a new component to a project.')
+@componentcli.command(name='create', help='Add a new component to a project.')
 @click.argument('project', nargs=1)
 @click.argument('name', nargs=1)
 @click.option('-d', '--description', help='The description.')
 @click.pass_obj
-def add_component(jf, project, name, description):
-    jf.add_component(project, name, description)
+def create_component(jf, project, name, description):
+    jf.create_component(project, name, description)
 
 
 @componentcli.command(name='delete', help='Delete a component from a project.')
@@ -148,13 +148,13 @@ def delete_component(jf, project, name):
     jf.delete_component(project, name)
 
 
-@componentcli.command(name='edit', help='Edit an existing component of a project.')
+@componentcli.command(name='update', help='Edit an existing component of a project.')
 @click.argument('project', nargs=1)
 @click.argument('name', nargs=1)
 @click.option('-d', '--description', help='The description.')
 @click.pass_obj
-def edit_component(jf, project, name, description):
-    jf.edit_component(project, name, description)
+def update_component(jf, project, name, description):
+    jf.update_component(project, name, description)
 
 
 @componentcli.command(name='search', help='List the components of a project.')
@@ -205,7 +205,7 @@ def transition_issue(jf, key, transition):
 def attach_issue(jf, key, file, name):
     attachment = get_attachment(file)
     filename = name or attachment.name
-    jf.add_attachment(key, attachment=attachment, filename=filename)
+    jf.create_attachment(key, attachment=attachment, filename=filename)
 
 
 @issuecli.command(name='assign', help='Assign an issue to a user.')
@@ -359,14 +359,14 @@ def usercli(ctx):
     pass
 
 
-@usercli.command(name='add', help='Add a new user.')
+@usercli.command(name='create', help='Add a new user.')
 @click.argument('username', nargs=1)
 @click.argument('email', nargs=1)
 @click.option('-p', '--password', help='The password.')
 @click.option('-n', '--fullname', help='The full name.')
 @click.pass_obj
-def add_user(jf, username, email, password, fullname):
-    jf.add_user(username, email, password=password, fullname=fullname)
+def create_user(jf, username, email, password, fullname):
+    jf.create_user(username, email, password=password, fullname=fullname)
 
 
 @usercli.command(name='delete', help='Delete a user.')
@@ -376,12 +376,12 @@ def delete_user(jf, username):
     jf.delete_user(username)
 
 
-@usercli.command(name='edit', help='Edit an existing user.')
+@usercli.command(name='update', help='Edit an existing user.')
 @click.argument('username', nargs=1)
 @click.option('-e', '--email', help='The email.')
 @click.pass_obj
-def edit_version(jf, username, email):
-    jf.edit_user(username, email)
+def update_version(jf, username, email):
+    jf.update_user(username, email)
 
 
 @usercli.command(name='search', help='List all the users matching the provided a string (username, full name, email).')
@@ -404,13 +404,13 @@ def versioncli(ctx):
     pass
 
 
-@versioncli.command(name='add', help='Add a new version to a project.')
+@versioncli.command(name='create', help='Add a new version to a project.')
 @click.argument('project', nargs=1)
 @click.argument('name', nargs=1)
 @click.option('-d', '--description', help='The description.')
 @click.pass_obj
-def add_version(jf, project, name, description):
-    jf.add_version(project, name, description)
+def create_version(jf, project, name, description):
+    jf.create_version(project, name, description)
 
 
 @versioncli.command(name='delete', help='Delete a version from a project.')
@@ -421,13 +421,13 @@ def delete_version(jf, project, name):
     jf.delete_version(project, name)
 
 
-@versioncli.command(name='edit', help='Edit a existing version of a project.')
+@versioncli.command(name='update', help='Edit a existing version of a project.')
 @click.argument('project', nargs=1)
 @click.argument('name', nargs=1)
 @click.option('-d', '--description', help='The description.')
 @click.pass_obj
-def edit_version(jf, project, name, description):
-    jf.edit_version(project, name, description)
+def update_version(jf, project, name, description):
+    jf.update_version(project, name, description)
 
 
 @versioncli.command(name='search', help='List the versions of a project.')

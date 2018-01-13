@@ -29,29 +29,29 @@ class TestComponents(unittest.TestCase):
             if _.name.startswith('test-'):
                 _.delete()
 
-    def test_add_component(self):
-        result = CliRunner().invoke(topcli, ['component', 'add', 'KB', 'test-1', '-d', 'Some description'])
+    def test_create_component(self):
+        result = CliRunner().invoke(topcli, ['component', 'create', 'KB', 'test-1', '-d', 'Some description'])
         self.assertEqual(result.exit_code, 0)
 
     def test_delete_component(self):
-        result = CliRunner().invoke(topcli, ['component', 'add', 'KB', 'test-1'])
+        result = CliRunner().invoke(topcli, ['component', 'create', 'KB', 'test-1'])
         self.assertEqual(result.exit_code, 0)
         self.assertIsNotNone(self.get_component('test-1'))
         result = CliRunner().invoke(topcli, ['component', 'delete', 'KB', 'test-1'])
         self.assertEqual(result.exit_code, 0)
         self.assertIsNone(self.get_component('test-1'))
 
-    def test_edit_component(self):
-        result = CliRunner().invoke(topcli, ['component', 'add', 'KB', 'test-1', '-d', 'before'])
+    def test_update_component(self):
+        result = CliRunner().invoke(topcli, ['component', 'create', 'KB', 'test-1', '-d', 'before'])
         before = self.get_component('test-1')
         self.assertEqual(before.description, 'before')
-        result = CliRunner().invoke(topcli, ['component', 'edit', 'KB', 'test-1', '-d', 'after'])
+        result = CliRunner().invoke(topcli, ['component', 'update', 'KB', 'test-1', '-d', 'after'])
         self.assertEqual(result.exit_code, 0)
         after = self.get_component('test-1')
         self.assertEqual(after.description, 'after')
 
     def test_search_component(self):
-        result = CliRunner().invoke(topcli, ['component', 'add', 'KB', 'test-1', '-d', 'Some description'])
+        result = CliRunner().invoke(topcli, ['component', 'create', 'KB', 'test-1', '-d', 'Some description'])
         result = CliRunner().invoke(topcli, ['component', 'search', 'KB'])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('test-1', result.output)
@@ -230,31 +230,31 @@ class TestUsers(unittest.TestCase):
         for _ in users:
             _.delete()
 
-    def test_add_user(self):
+    def test_create_user(self):
         self.assertIsNone(self.get_user('test-1'))
-        result = CliRunner().invoke(topcli, ['user', 'add', 'test-1', 'test-1' + '@gmail.com'])
+        result = CliRunner().invoke(topcli, ['user', 'create', 'test-1', 'test-1' + '@gmail.com'])
         self.assertEqual(result.exit_code, 0)
         self.assertIsNotNone(self.get_user('test-1'))
 
     def test_delete_user(self):
-        result = CliRunner().invoke(topcli, ['user', 'add', 'test-1', 'test-1' + '@gmail.com'])
+        result = CliRunner().invoke(topcli, ['user', 'create', 'test-1', 'test-1' + '@gmail.com'])
         self.assertEqual(result.exit_code, 0)
         self.assertIsNotNone(self.get_user('test-1'))
         result = CliRunner().invoke(topcli, ['user', 'delete', 'test-1'])
         self.assertEqual(result.exit_code, 0)
         self.assertIsNone(self.get_user('test-1'))
 
-    def test_edit_user(self):
-        result = CliRunner().invoke(topcli, ['user', 'add', 'test-1', 'before@gmail.com'])
+    def test_update_user(self):
+        result = CliRunner().invoke(topcli, ['user', 'create', 'test-1', 'before@gmail.com'])
         before = self.get_user('test-1')
         self.assertEqual(before.emailAddress, 'before@gmail.com')
-        result = CliRunner().invoke(topcli, ['user', 'edit', 'test-1', '-e', 'after@gmail.com'])
+        result = CliRunner().invoke(topcli, ['user', 'update', 'test-1', '-e', 'after@gmail.com'])
         self.assertEqual(result.exit_code, 0)
         after = self.get_user('test-1')
         self.assertEqual(after.emailAddress, 'after@gmail.com')
 
     def test_search_user(self):
-        result = CliRunner().invoke(topcli, ['user', 'add', 'test-1', 'test-1' + '@gmail.com'])
+        result = CliRunner().invoke(topcli, ['user', 'create', 'test-1', 'test-1' + '@gmail.com'])
         result = CliRunner().invoke(topcli, ['user', 'search'])
         self.assertEqual(result.exit_code, 0)
         before = len(result.output.strip().split('\n'))
@@ -282,29 +282,29 @@ class TestVersions(unittest.TestCase):
             if _.name.startswith('test-'):
                 _.delete()
 
-    def test_add_version(self):
-        result = CliRunner().invoke(topcli, ['version', 'add', 'KB', 'test-1', '-d', 'Some description'])
+    def test_create_version(self):
+        result = CliRunner().invoke(topcli, ['version', 'create', 'KB', 'test-1', '-d', 'Some description'])
         self.assertEqual(result.exit_code, 0)
 
     def test_delete_version(self):
-        result = CliRunner().invoke(topcli, ['version', 'add', 'KB', 'test-1'])
+        result = CliRunner().invoke(topcli, ['version', 'create', 'KB', 'test-1'])
         self.assertEqual(result.exit_code, 0)
         self.assertIsNotNone(self.get_version('test-1'))
         result = CliRunner().invoke(topcli, ['version', 'delete', 'KB', 'test-1'])
         self.assertEqual(result.exit_code, 0)
         self.assertIsNone(self.get_version('test-1'))
 
-    def test_edit_version(self):
-        result = CliRunner().invoke(topcli, ['version', 'add', 'KB', 'test-1', '-d', 'before'])
+    def test_update_version(self):
+        result = CliRunner().invoke(topcli, ['version', 'create', 'KB', 'test-1', '-d', 'before'])
         before = self.get_version('test-1')
         self.assertEqual(before.description, 'before')
-        result = CliRunner().invoke(topcli, ['version', 'edit', 'KB', 'test-1', '-d', 'after'])
+        result = CliRunner().invoke(topcli, ['version', 'update', 'KB', 'test-1', '-d', 'after'])
         self.assertEqual(result.exit_code, 0)
         after = self.get_version('test-1')
         self.assertEqual(after.description, 'after')
 
     def test_search_version(self):
-        result = CliRunner().invoke(topcli, ['version', 'add', 'KB', 'test-1', '-d', 'Some description'])
+        result = CliRunner().invoke(topcli, ['version', 'create', 'KB', 'test-1', '-d', 'Some description'])
         result = CliRunner().invoke(topcli, ['version', 'search', 'KB'])
         self.assertEqual(result.exit_code, 0)
         self.assertIn('test-1', result.output)

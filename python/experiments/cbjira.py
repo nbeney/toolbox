@@ -22,7 +22,7 @@ class JiraFacade:
     # Components
     #
 
-    def add_component(self, project, name, description):
+    def create_component(self, project, name, description):
         resource = self.jira().create_component(name, project.upper(), description=description)
         return resource
 
@@ -30,7 +30,7 @@ class JiraFacade:
         component = [_ for _ in self.jira().project_components(project.upper()) if _.name == name][0]
         component.delete()
 
-    def edit_component(self, project, name, description):
+    def update_component(self, project, name, description):
         component = [_ for _ in self.jira().project_components(project.upper()) if _.name == name][0]
         component.update(description=description)
         return component
@@ -124,14 +124,14 @@ class JiraFacade:
     # Users
     #
 
-    def add_user(self, username, email, password, fullname):
+    def create_user(self, username, email, password, fullname):
         resource = self.jira().add_user(username, email, password=password, fullname=fullname)
         return resource
 
     def delete_user(self, username):
         self.jira().delete_user(username)
 
-    def edit_user(self, username, email):
+    def update_user(self, username, email):
         user = [_ for _ in self.jira().search_users(user=username) if _.name == username][0]
         user.update(emailAddress=email)
         return user
@@ -146,14 +146,14 @@ class JiraFacade:
     # Versions
     #
 
-    def add_version(self, project, name, description):
+    def create_version(self, project, name, description):
         self.jira().create_version(name, project.upper(), description=description)
 
     def delete_version(self, project, name):
         version = [_ for _ in self.jira().project_versions(project.upper()) if _.name == name][0]
         version.delete()
 
-    def edit_version(self, project, name, description):
+    def update_version(self, project, name, description):
         version = [_ for _ in self.jira().project_versions(project.upper()) if _.name == name][0]
         version.update(description=description)
 
