@@ -23,24 +23,20 @@ class JiraFacade:
     #
 
     def add_component(self, project, name, description):
-        project = self.jira().project(project.upper())
-        resource = self.jira().create_component(name, project, description=description)
+        resource = self.jira().create_component(name, project.upper(), description=description)
         return resource
 
     def delete_component(self, project, name):
-        project = self.jira().project(project.upper())
-        component = [_ for _ in self.jira().project_components(project) if _.name == name][0]
+        component = [_ for _ in self.jira().project_components(project.upper()) if _.name == name][0]
         component.delete()
 
     def edit_component(self, project, name, description):
-        project = self.jira().project(project.upper())
-        component = [_ for _ in self.jira().project_components(project) if _.name == name][0]
+        component = [_ for _ in self.jira().project_components(project.upper()) if _.name == name][0]
         component.update(description=description)
         return component
 
     def search_components(self, project):
-        project = self.jira().project(project.upper())
-        components = self.jira().project_components(project)
+        components = self.jira().project_components(project.upper())
         return components
 
     #
@@ -64,13 +60,13 @@ class JiraFacade:
         return resource
 
     def assign_issue(self, key, user):
-        resource = self.jira().assign_issue(key, user)
+        self.jira().assign_issue(key, user)
 
     def unassign_issue(self, key):
-        resource = self.jira().assign_issue(key, None)
+        self.jira().assign_issue(key, None)
 
     def comment_issue(self, key, text):
-        resource = self.jira().add_comment(key, text)
+        self.jira().add_comment(key, text)
 
     def link_issue(self, type, key_from, key_to):
         self.jira().create_issue_link(type, key_from, key_to)
@@ -117,7 +113,7 @@ class JiraFacade:
     #
 
     def info_project(self, project):
-        project = self.jira().project(project)
+        project = self.jira().project(project.upper())
         return project
 
     def search_projects(self):
@@ -140,7 +136,7 @@ class JiraFacade:
         user.update(emailAddress=email)
         return user
 
-    def search_user(self, filter=None):
+    def search_users(self, filter=None):
         filter = filter.lower() if filter else '@'
         users = self.jira().search_users(user=filter, maxResults=5000)
         return [_ for _ in users if
@@ -151,20 +147,16 @@ class JiraFacade:
     #
 
     def add_version(self, project, name, description):
-        project = self.jira().project(project.upper())
-        resource = self.jira().create_version(name, project, description=description)
+        self.jira().create_version(name, project.upper(), description=description)
 
     def delete_version(self, project, name):
-        project = self.jira().project(project.upper())
-        version = [_ for _ in self.jira().project_versions(project) if _.name == name][0]
+        version = [_ for _ in self.jira().project_versions(project.upper()) if _.name == name][0]
         version.delete()
 
     def edit_version(self, project, name, description):
-        project = self.jira().project(project.upper())
-        version = [_ for _ in self.jira().project_versions(project) if _.name == name][0]
+        version = [_ for _ in self.jira().project_versions(project.upper()) if _.name == name][0]
         version.update(description=description)
 
     def search_versions(self, project):
-        project = self.jira().project(project.upper())
-        versions = self.jira().project_versions(project)
+        versions = self.jira().project_versions(project.upper())
         return versions

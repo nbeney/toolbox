@@ -63,20 +63,16 @@ def dump(raw, depth=0, indent='    '):
 
 
 def print_items(values, keys, sort_key=None):
-    if sort_key is None:
-        sort_key = keys[0]
     w = csv.writer(sys.stdout)
     w.writerow(keys)
-    for dict_ in sorted(values, key=itemgetter(sort_key)):
+    for dict_ in sorted(values, key=itemgetter(sort_key or keys[0])):
         w.writerow(tuple(to_ascii(dict_.get(_)) for _ in keys))
 
 
 def print_attrs(values, attrs, sort_attr=None):
-    if sort_attr is None:
-        sort_attr = attrs[0]
     w = csv.writer(sys.stdout)
     w.writerow(attrs)
-    for res in sorted(values, key=attrgetter(sort_attr)):
+    for res in sorted(values, key=attrgetter(sort_attr or attrs[0])):
         w.writerow(tuple(getattr(res, _) for _ in attrs))
 
 
@@ -392,7 +388,7 @@ def edit_version(jf, username, email):
 @click.option('-f', '--filter', help='Match on any part (username, full name, email)')
 @click.pass_obj
 def search_user(jf, filter):
-    users = jf.search_user(filter)
+    users = jf.search_users(filter)
 
     for _ in users:
         print(_.key, _.name, _.emailAddress, _)
