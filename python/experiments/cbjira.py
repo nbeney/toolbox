@@ -1,18 +1,21 @@
 from __future__ import print_function
 
+from functools32 import lru_cache
 from jira import JIRA
 
 
 class JiraFacade:
     def __init__(self, server, username, password):
-        self.conn = dict(server=server, username=username, password=password)
+        self.server = server
+        self.username = username
+        self.password = password
 
-    # @lru_cache
+    @lru_cache()
     def jira(self):
         return JIRA(options=dict(
-            server=self.conn['server'],
+            server=self.server,
             verify=False),
-            basic_auth=(self.conn['username'], self.conn['password'])
+            basic_auth=(self.username, self.password)
         )
 
     #
