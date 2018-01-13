@@ -104,8 +104,10 @@ def get_text(args, message):
 # =====================================================================================================================
 
 @click.group(context_settings=dict(terminal_width=200), help='A command line tool for interacting with JIRA.')
-@click.option('-S', '--server', default=default_server(), show_default=True, help='The URL to connect to.')
-@click.option('-U', '--username', default=default_user(), show_default=True, help='The username to connect with.')
+@click.option('-S', '--server', default=default_server(), show_default=True, envvar='JIRA_SERVER',
+              help='The URL to connect to.')
+@click.option('-U', '--username', default=default_user(), show_default=True, envvar='JIRA_USER',
+              help='The username to connect with.')
 @click.option('-P', '--password', prompt=True, hide_input=True, envvar='JIRA_PASSWORD',
               help='The password to connect with (or set JIRA_PASSWORD).')
 @click.pass_context
