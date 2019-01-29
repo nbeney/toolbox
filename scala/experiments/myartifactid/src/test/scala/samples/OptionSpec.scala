@@ -94,7 +94,7 @@ class OptionSpec extends FreeSpec with TableDrivenPropertyChecks {
     "matches Some" in {
       SOME_1 match {
         case Some(x) => assert(x == 1)
-        case None => fail()
+        case None => fail
       }
     }
 
@@ -130,7 +130,7 @@ class OptionSpec extends FreeSpec with TableDrivenPropertyChecks {
 
     "matches None" in {
       NONE match {
-        case Some(_) => fail()
+        case Some(_) => fail
         case None =>
       }
     }
