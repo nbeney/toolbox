@@ -45,7 +45,7 @@ class Ex21_Fibonacci_Spec extends FreeSpec with TableDrivenPropertyChecks {
     }
   }
 
-  lazy val fibs: Stream[Int] = 0 #:: 1 #:: fibs.zip(fibs.tail).map { n => n._1 + n._2 }
+  lazy val fibs: Stream[Int] = 0 #:: 1 #:: fibs.zip(fibs.tail).map { case (p, q) => p + q }
 
   def fibStream(n: Int): Int = fibs(n - 1)
 
