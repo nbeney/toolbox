@@ -5,7 +5,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 
 import scala.annotation.tailrec
 
-class Ex11_Compose extends FreeSpec {
+class Ex11_Compose_Spec extends FreeSpec {
 
   def compose[A, B, C](g: B => C, f: A => B): A => C = (x: A) => g(f(x))
 

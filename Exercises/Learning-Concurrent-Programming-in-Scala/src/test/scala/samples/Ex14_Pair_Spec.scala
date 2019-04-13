@@ -2,7 +2,7 @@ package samples
 
 import org.scalatest.FreeSpec
 
-class Ex14_Pair extends FreeSpec {
+class Ex14_Pair_Spec extends FreeSpec {
 
   class Pair1[A, B](val a: A, val b: B)
 

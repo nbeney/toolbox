@@ -2,7 +2,7 @@ package samples
 
 import org.scalatest.FreeSpec
 
-class Ex16_Combinations extends FreeSpec {
+class Ex16_Combinations_Spec extends FreeSpec {
 
   // TODO: Use Iterator
   def combinations[T](n: Int, xs: List[T]): List[List[T]] = {

@@ -4,7 +4,7 @@ import org.scalatest.FreeSpec
 
 import scala.util.matching.Regex
 
-class Ex17_Matcher extends FreeSpec {
+class Ex17_Matcher_Spec extends FreeSpec {
 
   def matcher(regex: String): PartialFunction[String, List[String]] = {
     val re = new Regex(regex)

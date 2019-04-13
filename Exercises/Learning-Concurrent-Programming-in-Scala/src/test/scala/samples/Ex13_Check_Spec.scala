@@ -2,7 +2,7 @@ package samples
 
 import org.scalatest.FreeSpec
 
-class Ex13_Check extends FreeSpec {
+class Ex13_Check_Spec extends FreeSpec {
 
   def check[T](xs: Seq[T])(pred: T => Boolean) = xs.forall(pred)
 

@@ -2,7 +2,7 @@ package samples
 
 import org.scalatest.FreeSpec
 
-class Ex15_Permutations extends FreeSpec {
+class Ex15_Permutations_Spec extends FreeSpec {
 
   def permutations(s: String): Seq[String] = {
     def loop(xs: List[Char]): List[List[Char]] = {

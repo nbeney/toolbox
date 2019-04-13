@@ -2,7 +2,7 @@ package samples
 
 import org.scalatest.FreeSpec
 
-class Ex12_Fuse extends FreeSpec {
+class Ex12_Fuse_Spec extends FreeSpec {
 
   def fuse[A, B](a: Option[A], b: Option[B]): Option[(A, B)] =
     for (x <- a; y <- b) yield (x, y)
