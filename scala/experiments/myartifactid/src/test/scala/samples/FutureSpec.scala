@@ -14,20 +14,51 @@ class FutureSpec extends AsyncFreeSpec {
   }
 
   "Basic tests" - {
-    "called once" in {
-      future(1) map { res => assert(res == 1) }
+    "with successful Future" in {
+      val f = future(1)
+      f map { res => assert(res == 1) }
+      f map { res => assert(res == 1) }
     }
 
-    "called twice" in {
-      val x = future(1)
-      x map { res => assert(res == 1) }
-      x map { res => assert(res == 1) }
-    }
-
-    "with Exception" in {
+    "with failed Exception" in {
+      val f = future(1, exc = true)
       recoverToSucceededIf[IllegalStateException] {
-        future(1, exc = true)
+        f
       }
+      recoverToSucceededIf[IllegalStateException] {
+        f
+      }
+    }
+
+    "with successful" in {
+      val f = Future.successful(1)
+      f map { res => assert(res == 1) }
+      f map { res => assert(res == 1) }
+    }
+
+    "with failed" in {
+      val f = Future.failed(new IllegalStateException())
+      recoverToSucceededIf[IllegalStateException] {
+        f
+      }
+      recoverToSucceededIf[IllegalStateException] {
+        f
+      }
+    }
+  }
+
+  "Future of future" - {
+    "xxx" in {
+      val ff: Future[Future[Int]] = Future {
+        Future(1)
+      }
+
+      val res = for {
+        x: Future[Int] <- ff
+        y: Int <- x
+      } yield y
+
+      assert(res == 1)
     }
   }
 }
