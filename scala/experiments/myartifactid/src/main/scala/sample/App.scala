@@ -2,7 +2,7 @@ package sample
 
 object App {
 
-  def foo(x: Array[String]) = x.foldLeft("")((a, b) => a + b)
+  def foo(xs: Array[String]) = xs.foldLeft("")((a, b) => a + b)
 
   def main(args: Array[String]) {
     println("Hello World!")

@@ -73,6 +73,12 @@
                     <artifactId>slick_2.12</artifactId>
                     <version>3.2.3</version>
                 </dependency>
+                <!-- https://mvnrepository.com/artifact/info.picocli/picocli -->
+                <dependency>
+                    <groupId>info.picocli</groupId>
+                    <artifactId>picocli</artifactId>
+                    <version>3.9.6</version>
+                </dependency>
             </dependencies>
         </profile>
         <!--<profile>-->
