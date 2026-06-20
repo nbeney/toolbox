@@ -40,7 +40,7 @@ bind 'set completion-ignore-case on'
 export PAGER=less
 export EDITOR='emacs -nw'
 export TERM=xterm-256color
-export LC_COLLATE=en_GB.utf8
+locale -a 2>/dev/null | grep -q 'en_GB.utf8' && export LC_COLLATE=en_GB.utf8
 
 export PATH="${HOME}/scripts:$PATH"
 export PATH="${HOME}/.local/bin:$PATH"
