@@ -1,4 +1,3 @@
-
 # Kiro CLI pre block. Keep at the top of this file.
 [[ -f "${HOME}/.local/share/kiro-cli/shell/bashrc.pre.bash" ]] && builtin source "${HOME}/.local/share/kiro-cli/shell/bashrc.pre.bash"
 
@@ -300,8 +299,12 @@ if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
 fi
 
-. "${HOME}/.deno/env"
-. "${HOME}/.deno-completions"
+if [ -f "${HOME}/.deno/env" ]; then
+    . "${HOME}/.deno/env"
+fi
+if [ -f "${HOME}/.deno-completions" ]; then
+    . "${HOME}/.deno-completions"
+fi
 
 [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path bash)"
 
