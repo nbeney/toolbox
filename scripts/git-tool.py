@@ -18,16 +18,28 @@ from __future__ import annotations
 
 import subprocess
 from abc import ABC, abstractmethod
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.prompt import Confirm
 from rich.table import Table
 
 app = typer.Typer(help="Manage local and remote git repositories.")
 console = Console()
+
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+
+class UrlMode(str, Enum):
+    https = "https"
+    git = "git"
 
 
 # ---------------------------------------------------------------------------
@@ -37,6 +49,7 @@ console = Console()
 
 class State:
     root: Path = Path.cwd()
+    url_mode: UrlMode = UrlMode.https
 
 
 state = State()
@@ -50,9 +63,15 @@ def main(
         "-r",
         help="Local directory containing repos. Defaults to cwd.",
     ),
+    url_mode: UrlMode = typer.Option(
+        UrlMode.https,
+        "--url-mode",
+        help="URL format to use for cloning: https or git (SSH).",
+    ),
 ) -> None:
     if root is not None:
         state.root = root.expanduser()
+    state.url_mode = url_mode
 
 
 # ---------------------------------------------------------------------------
@@ -61,10 +80,20 @@ def main(
 
 
 class RemoteRepo:
-    def __init__(self, name: str, clone_url: str, default_branch: str = "main"):
+    def __init__(
+        self,
+        name: str,
+        https_url: str,
+        ssh_url: str,
+        default_branch: str = "main",
+    ):
         self.name = name
-        self.clone_url = clone_url
+        self.https_url = https_url
+        self.ssh_url = ssh_url
         self.default_branch = default_branch
+
+    def clone_url(self) -> str:
+        return self.ssh_url if state.url_mode == UrlMode.git else self.https_url
 
 
 class LocalRepo:
@@ -86,12 +115,29 @@ class LocalRepo:
         return result.stdout.strip() if result.returncode == 0 else "?"
 
     def has_uncommitted_changes(self) -> bool:
-        result = self._git("status", "--porcelain")
-        return bool(result.stdout.strip())
+        return bool(self.status_entries())
 
-    def status_lines(self) -> list[str]:
-        result = self._git("status", "--short")
-        return result.stdout.strip().splitlines()
+    def status_entries(self) -> list[tuple[str, str, str]]:
+        """Return list of (category, filename, change_code) where category is STAGED/UNSTAGED/UNTRACKED."""
+        result = self._git("status", "--porcelain")
+        entries = []
+        for line in result.stdout.splitlines():
+            if len(line) < 3:
+                continue
+            index = line[0]  # staged state
+            worktree = line[1]  # unstaged state
+            filename = line[3:]
+            if index == "?" and worktree == "?":
+                entries.append(("UNTRACKED", filename, ""))
+            elif index != " " and worktree == " ":
+                entries.append(("STAGED", filename, index))
+            elif index == " " and worktree != " ":
+                entries.append(("UNSTAGED", filename, worktree))
+            else:
+                # Both staged and unstaged changes (e.g. partially staged)
+                entries.append(("STAGED", filename, index))
+                entries.append(("UNSTAGED", filename, worktree))
+        return entries
 
     def stashes(self) -> list[str]:
         result = self._git("stash", "list")
@@ -169,7 +215,7 @@ class GitHubProvider(Provider):
                 "--limit",
                 "1000",
                 "--json",
-                "name,sshUrl,defaultBranchRef",
+                "name,url,sshUrl,defaultBranchRef",
             ],
             capture_output=True,
             text=True,
@@ -186,7 +232,8 @@ class GitHubProvider(Provider):
             repos.append(
                 RemoteRepo(
                     name=item["name"],
-                    clone_url=item["sshUrl"],
+                    https_url=item["url"],
+                    ssh_url=item["sshUrl"],
                     default_branch=default_branch,
                 )
             )
@@ -265,7 +312,12 @@ def find_local_repos(root: Path) -> list[LocalRepo]:
 
 @app.command("list-local")
 def list_local(
-    compact: bool = typer.Option(False, "--compact", "-c", help="Show only repos with at least one non-zero value."),
+    compact: bool = typer.Option(
+        False,
+        "--compact",
+        "-c",
+        help="Show only repos with at least one non-zero value.",
+    ),
 ) -> None:
     """List all local git repositories."""
     repos = find_local_repos(state.root)
@@ -273,12 +325,24 @@ def list_local(
     table = Table(title="Local repositories")
     table.add_column("Name", style="bright_cyan", header_style="white")
     table.add_column("Branch", style="bright_green", header_style="white")
-    table.add_column("Unpushed", style="bright_white", header_style="white", justify="right")
-    table.add_column("Unpulled", style="bright_white", header_style="white", justify="right")
-    table.add_column("Staged", style="bright_white", header_style="white", justify="right")
-    table.add_column("Unstaged", style="bright_white", header_style="white", justify="right")
-    table.add_column("Untracked", style="bright_white", header_style="white", justify="right")
-    table.add_column("Stashes", style="bright_white", header_style="white", justify="right")
+    table.add_column(
+        "Unpushed", style="bright_white", header_style="white", justify="right"
+    )
+    table.add_column(
+        "Unpulled", style="bright_white", header_style="white", justify="right"
+    )
+    table.add_column(
+        "Staged", style="bright_white", header_style="white", justify="right"
+    )
+    table.add_column(
+        "Unstaged", style="bright_white", header_style="white", justify="right"
+    )
+    table.add_column(
+        "Untracked", style="bright_white", header_style="white", justify="right"
+    )
+    table.add_column(
+        "Stashes", style="bright_white", header_style="white", justify="right"
+    )
 
     for repo in repos:
         repo.fetch()
@@ -289,10 +353,13 @@ def list_local(
         unstaged = repo.unstaged_files()
         untracked = repo.untracked_files()
         stashes = len(repo.stashes())
-        if compact and not any([unpushed, unpulled, staged, unstaged, untracked, stashes]):
+        if compact and not any(
+            [unpushed, unpulled, staged, unstaged, untracked, stashes]
+        ):
             continue
+        has_activity = any([unpushed, unpulled, staged, unstaged, untracked, stashes])
         table.add_row(
-            repo.name,
+            repo.name + ("[white]*[/white]" if has_activity else ""),
             branch,
             str(unpushed) if unpushed else "-",
             str(unpulled) if unpulled else "-",
@@ -311,41 +378,77 @@ def list_remote(
 ) -> None:
     """List all remote repositories for a provider."""
     prov = get_provider(provider)
-    repos = prov.list_repos()
+    repos = sorted(prov.list_repos(), key=lambda r: r.name)
 
     table = Table(title=f"Remote repositories ({provider})")
-    table.add_column("Name", style="cyan")
-    table.add_column("Default branch", style="green")
-    table.add_column("Clone URL", style="dim")
+    table.add_column("Name", style="bright_cyan", header_style="white")
+    table.add_column("Default branch", style="bright_green", header_style="white")
+    table.add_column("URL", style="bright_white", header_style="white")
 
     for repo in repos:
-        table.add_row(repo.name, repo.default_branch, repo.clone_url)
+        table.add_row(repo.name, repo.default_branch, repo.clone_url())
 
     console.print(table)
 
 
+_CHANGE_LABEL: dict[str, str] = {
+    "A": "added",
+    "M": "modified",
+    "D": "deleted",
+    "R": "renamed",
+    "C": "copied",
+    "U": "unmerged",
+}
+
+
+def _change_label(code: str) -> str:
+    return _CHANGE_LABEL.get(code.upper(), code)
+
+
+_STATUS_ORDER = {"STAGED": 0, "UNSTAGED": 1, "UNTRACKED": 2}
+
+_STATUS_STYLE: dict[str, tuple[str, str]] = {
+    "STAGED": ("green", "STAGED   "),
+    "UNSTAGED": ("red", "UNSTAGED "),
+    "UNTRACKED": ("yellow", "UNTRACKED"),
+}
+
+
 @app.command("status")
-def status() -> None:
+def status(
+    compact: bool = typer.Option(False, "--compact", "-c", help="Hide clean repos."),
+) -> None:
     """Show the status of each local repo, including stashes."""
     repos = find_local_repos(state.root)
 
     for repo in repos:
-        changes = repo.status_lines()
+        entries = repo.status_entries()
         stashes = repo.stashes()
         branch = repo.current_branch()
 
-        status_color = "green" if not changes else "yellow"
+        if compact and not entries and not stashes:
+            continue
+
+        status_color = "green" if not entries else "yellow"
         console.rule(
-            f"[bold {status_color}]{repo.name}[/bold {status_color}] ({branch})"
+            f"[bold {status_color}]{repo.name}[/bold {status_color}] ({branch})",
+            style="white",
         )
 
-        if not changes and not stashes:
+        if not entries and not stashes:
             console.print("  [dim]Clean[/dim]")
         else:
-            for line in changes:
-                console.print(f"  {line}")
+            sorted_entries = sorted(
+                entries, key=lambda e: (_STATUS_ORDER.get(e[0], 99), e[1])
+            )
+            for category, filename, change_code in sorted_entries:
+                color, prefix = _STATUS_STYLE[category]
+                suffix = f"  ({_change_label(change_code)})" if change_code else ""
+                console.print(
+                    f"  [{color}]{prefix}  {escape(filename)}{suffix}[/{color}]"
+                )
             for stash in stashes:
-                console.print(f"  [magenta]{stash}[/magenta]")
+                console.print(f"  [magenta]STASH      {escape(stash)}[/magenta]")
 
 
 @app.command("branches-remote")
@@ -357,12 +460,12 @@ def branches_remote(
     repos = prov.list_repos()
 
     table = Table(title=f"Remote branches ({provider})")
-    table.add_column("Repository", style="cyan")
-    table.add_column("Branches", style="green")
+    table.add_column("Repository", style="bright_cyan", header_style="white")
+    table.add_column("Branches", style="bright_green", header_style="white")
 
     for repo in repos:
         branches = prov.list_branches(repo)
-        table.add_row(repo.name, ", ".join(branches) if branches else "[dim]—[/dim]")
+        table.add_row(repo.name, ", ".join(branches) if branches else "-")
 
     console.print(table)
 
@@ -375,8 +478,12 @@ def branches_local() -> None:
     table = Table(title="Local branches")
     table.add_column("Repository", style="bright_cyan", header_style="white")
     table.add_column("Branch", style="bright_green", header_style="white")
-    table.add_column("Unpushed", style="bright_yellow", header_style="white", justify="right")
-    table.add_column("Unpulled", style="bright_magenta", header_style="white", justify="right")
+    table.add_column(
+        "Unpushed", style="bright_white", header_style="white", justify="right"
+    )
+    table.add_column(
+        "Unpulled", style="bright_white", header_style="white", justify="right"
+    )
 
     for repo in repos:
         repo.fetch()
@@ -411,21 +518,31 @@ def sync(
     local_repos = find_local_repos(state.root)
     local_names = {r.name: r for r in local_repos}
 
-    to_clone = [r for name, r in remote_names.items() if name not in local_names]
-    to_pull = [r for name, r in local_names.items() if name in remote_names]
-    to_delete = [r for name, r in local_names.items() if name not in remote_names]
+    to_clone = sorted(
+        [r for name, r in remote_names.items() if name not in local_names],
+        key=lambda r: r.name,
+    )
+    to_pull = sorted(
+        [r for name, r in local_names.items() if name in remote_names],
+        key=lambda r: r.name,
+    )
+    to_delete = sorted(
+        [r for name, r in local_names.items() if name not in remote_names],
+        key=lambda r: r.name,
+    )
 
     # --- 1. Clone missing repos -------------------------------------------
     if to_clone:
         console.rule("[bold green]Clone missing repos[/bold green]")
         for remote in to_clone:
             dest = state.root / remote.name
+            url = remote.clone_url()
             if dry_run:
-                console.print(f"  [dim]Would clone[/dim] {remote.clone_url} → {dest}")
+                console.print(f"  [dim]Would clone[/dim] {url} → {dest}")
             else:
                 console.print(f"  Cloning [cyan]{remote.name}[/cyan]…")
                 result = subprocess.run(
-                    ["git", "clone", remote.clone_url, str(dest)],
+                    ["git", "clone", url, str(dest)],
                     capture_output=True,
                     text=True,
                 )

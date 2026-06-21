@@ -234,6 +234,14 @@ alias gt='git tag --format='\''%(creatordate:short)%09%(*objectname:short)%(obje
 alias galiases="alias | grep git | grep -v galiases"
 alias lg="lazygit"
 
+alias gitt="git-tool.py --root=~/repos"
+alias gittll="gitt list-local"
+alias gittllc="gitt list-local --compact"
+alias gittlr="gitt list-remote"
+alias gitts="gitt status"
+alias gittsc="gitt status --compact"
+alias gittsync="gitt sync"
+
 #==============================================================================
 # Aliases — AWS CLI
 #==============================================================================
@@ -251,6 +259,7 @@ alias awsys="aws --output yaml-stream"
 alias flet="uvx flet"
 alias glances="uvx glances"
 alias marimo="uvx marimo"
+alias markitdown="uvx markitdown"
 alias mpr="uvx mpremote"
 alias nicegui-pack="uvx --from nicegui nicegui-pack"
 alias ruff="uvx ruff"
