@@ -264,6 +264,7 @@ alias mpr="uvx mpremote"
 alias nicegui-pack="uvx --from nicegui nicegui-pack"
 alias ruff="uvx ruff"
 alias streamlit="uvx streamlit"
+alias textract="uvx textract"
 alias thonny="uvx thonny"
 
 #==============================================================================
