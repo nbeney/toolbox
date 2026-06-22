@@ -187,6 +187,7 @@ alias pandoc-html="pandoc --to=html --standalone --self-contained"
 alias suc='sort | uniq -c'
 alias sucn='sort | uniq -c | sort -n'
 alias sucnr='sort | uniq -c | sort -nr'
+alias shfmt="shfmt --indent=4"
 alias split-fix="tr '\01' \\n"
 
 # Prepend a timestamp to each line of stdin
@@ -262,6 +263,7 @@ alias marimo="uvx marimo"
 alias markitdown="uvx markitdown"
 alias mpr="uvx mpremote"
 alias nicegui-pack="uvx --from nicegui nicegui-pack"
+alias qrcode="uvx --from qrcode qr"
 alias ruff="uvx ruff"
 alias streamlit="uvx streamlit"
 alias textract="uvx textract"
