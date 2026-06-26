@@ -32,6 +32,27 @@ app = typer.Typer(help="Encrypted S3 Backup Tool")
 console = Console()
 
 
+def _check_external_dependencies() -> None:
+    """Check that required external commands are available."""
+    import shutil
+
+    deps = {
+        "openssl": "sudo apt install openssl",
+        "aws": "See https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html",
+    }
+
+    missing = {cmd: hint for cmd, hint in deps.items() if shutil.which(cmd) is None}
+
+    if missing:
+        console.print("[red]Error: missing required command(s):[/red]")
+        for cmd, hint in missing.items():
+            console.print(f"  • [bold]{cmd}[/bold] — {hint}")
+        raise SystemExit(1)
+
+
+_check_external_dependencies()
+
+
 class BackupConfig:
     """Configuration for backup operations."""
 
