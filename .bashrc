@@ -223,6 +223,7 @@ alias gc="git commit"
 alias gco="git checkout"
 alias gd=__git_diff
 alias gl="git log --oneline"
+alias gl1="git log --oneline"
 alias gld="git log-gdo"
 alias gri="git rebase -i HEAD~15"
 alias grv="git remote -v"
@@ -307,19 +308,19 @@ function repeat() {
 # External files
 #==============================================================================
 
-if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
-fi
+[ -f ~/.bash_aliases ] && . ~/.bash_aliases
 
-if [ -f "${HOME}/.deno/env" ]; then
-    . "${HOME}/.deno/env"
-fi
-if [ -f "${HOME}/.deno-completions" ]; then
-    . "${HOME}/.deno-completions"
-fi
+[ -f ~/repos/toolbox/.bashrc.d/common.sh ] && . ~/repos/toolbox/.bashrc.d/common.sh
+
+[ -f ~/repos/toolbox/.bashrc.d/ansi.sh ] && . ~/repos/toolbox/.bashrc.d/ansi.sh
+
+[ -f ~/repos/toolbox/.bashrc.d/prompt.sh ] && . ~/repos/toolbox/.bashrc.d/prompt.sh
+
+[ -f "${HOME}/.deno/env" ] && . "${HOME}/.deno/env"
+
+[ -f "${HOME}/.deno-completions" ] && . "${HOME}/.deno-completions"
 
 [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path bash)"
-
 
 # Kiro CLI post block. Keep at the bottom of this file.
 [[ -f "${HOME}/.local/share/kiro-cli/shell/bashrc.post.bash" ]] && builtin source "${HOME}/.local/share/kiro-cli/shell/bashrc.post.bash"
