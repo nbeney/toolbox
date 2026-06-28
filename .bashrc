@@ -260,6 +260,7 @@ alias awsys="aws --output yaml-stream"
 
 alias flet="uvx flet"
 alias glances="uvx glances"
+alias linkchecker="uvx linkchecker"
 alias marimo="uvx marimo"
 alias markitdown="uvx markitdown"
 alias mpr="uvx mpremote"
