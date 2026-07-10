@@ -176,7 +176,11 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
-alias rg="rg --colors='match:fg:black' --colors='match:bg:yellow' --colors='line:fg:cyan' --colors='path:fg:green'"
+if command -v rg >/dev/null 2>&1; then
+    alias rg="rg --no-ignore --hidden --text --colors='match:fg:black' --colors='match:bg:yellow' --colors='line:fg:cyan' --colors='path:fg:green'"
+else
+    alias rg="grep -R --color=auto"
+fi
 
 #==============================================================================
 # Aliases — text processing
