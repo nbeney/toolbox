@@ -17,7 +17,7 @@ function __tbx_start_timer
 
 function __tbx_stop_timer
 {
-    TBX_DURATION=$((${SECONDS} - ${TBX_START_SECONDS}))
+    TBX_DURATION=$((SECONDS - ${TBX_START_SECONDS:-${SECONDS}}))
     unset TBX_START_SECONDS
 }
 
