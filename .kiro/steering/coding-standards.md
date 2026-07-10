@@ -18,3 +18,6 @@
 - Use [Playwright](https://playwright.dev/python/) for web frontend tests.
 - Use [Typer](https://typer.tiangolo.com/) for CLI argument parsing.
 - Use [Rich](https://rich.readthedocs.io/) for pretty terminal output (tables, colours, progress bars, etc.).
+- Use [Dominate](https://github.com/Knio/dominate) for HTML generation.).
+- When creating a new script with a `if __name__ == "__main__"`, add a `#!/usr/local/bin/uv run` shebang and make it executable.
+- When creating CLI options/arguments, please define module-level variables using typer.Option(...) or typer.Argument() and then used by name in the function signature. See db-tool/src/app.py for an example.
