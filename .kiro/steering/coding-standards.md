@@ -5,6 +5,7 @@
 - Always use `${variable}` instead of `$variable` for variable expansions.
 - Always quote variable expansions: `"${variable}"` unless word splitting is explicitly needed.
 - Command-line options should have both a short form (e.g. `-v`) and a long form (e.g. `--verbose`) where possible.
+- Continuation lines (after `\`) must be indented with 4 spaces.
 
 ## Python
 

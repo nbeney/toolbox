@@ -66,7 +66,7 @@ echo
 create_symlink "${TOOLBOX}/.bashrc"                            "${HOME}/.bashrc"
 create_symlink "${TOOLBOX}/.tmux.conf"                         "${HOME}/.tmux.conf"
 create_symlink "${TOOLBOX}/scripts"                            "${HOME}/scripts"
-create_symlink "${TOOLBOX}/.kiro/steering/coding-standards.md" "${HOME}/.kiro/steering/coding-standards.md"
+create_symlink "${TOOLBOX}/.kiro/steering/coding-standards.md" "${TOOLBOX}/../.kiro/steering/coding-standards.md"
 
 echo
 echo -e "${BOLD}Done.${RESET}"
