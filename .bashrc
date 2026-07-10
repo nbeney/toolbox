@@ -240,13 +240,37 @@ alias gt='git tag --format='\''%(creatordate:short)%09%(*objectname:short)%(obje
 alias galiases="alias | grep git | grep -v galiases"
 alias lg="lazygit"
 
-alias gitt="git-tool.py --root=~/repos"
-alias gittll="gitt list-local"
-alias gittllc="gitt list-local --compact"
-alias gittlr="gitt list-remote"
-alias gitts="gitt status"
-alias gittsc="gitt status --compact"
-alias gittsync="gitt sync"
+# Define gitt aliases: "alias|command|description"
+_GITT_ALIASES=(
+    "gitt     | git-tool.py --root=~/repos | Multi-repo management tool"
+    "gittll   | gitt list-local            | List local repositories"
+    "gittllc  | gitt list-local --compact  | List local repositories (compact)"
+    "gittlr   | gitt list-remote           | List remote repositories"
+    "gitts    | gitt status                | Show status of all repos"
+    "gittsc   | gitt status --compact      | Show status of all repos (compact)"
+    "gittsync | gitt sync                  | Sync all repos with remote"
+)
+
+_trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; printf '%s' "${v}"; }
+
+for _entry in "${_GITT_ALIASES[@]}"; do
+    IFS='|' read -r _alias _cmd _desc <<< "${_entry}"
+    _alias=$(_trim "${_alias}")
+    _cmd=$(_trim "${_cmd}")
+    alias "${_alias}=${_cmd}"
+done
+unset _entry _alias _cmd _desc
+
+function gitt-help() {
+    for _entry in "${_GITT_ALIASES[@]}"; do
+        IFS='|' read -r _alias _cmd _desc <<< "${_entry}"
+        _alias=$(_trim "${_alias}")
+        _cmd=$(_trim "${_cmd}")
+        _desc=$(_trim "${_desc}")
+        printf "  ${TBX_ANSI_FG_GREEN}%-12s${TBX_ANSI_RESET} ${TBX_ANSI_FG_CYAN}%-34s${TBX_ANSI_RESET} %s\n" "${_alias}" "${_cmd}" "${_desc}"
+    done
+    printf "  ${TBX_ANSI_FG_GREEN}%-12s${TBX_ANSI_RESET} ${TBX_ANSI_FG_CYAN}%-34s${TBX_ANSI_RESET} %s\n" "gitt-help" "(this command)" "Show this help message"
+}
 
 #==============================================================================
 # Aliases — AWS CLI
