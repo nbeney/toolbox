@@ -3,6 +3,7 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
+#   "requests>=2.31.0",
 #   "rich>=14.0.0",
 #   "typer>=0.26.7",
 # ]
@@ -16,12 +17,14 @@ Manage local and remote git repositories across multiple providers.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
 from typing import Optional
 
+import requests
 import typer
 from rich.console import Console
 from rich.markup import escape
@@ -42,6 +45,12 @@ class UrlMode(str, Enum):
     git = "git"
 
 
+class RepoMode(str, Enum):
+    active = "active"
+    archived = "archived"
+    all = "all"
+
+
 # ---------------------------------------------------------------------------
 # Global state
 # ---------------------------------------------------------------------------
@@ -50,6 +59,7 @@ class UrlMode(str, Enum):
 class State:
     root: Path = Path.cwd()
     url_mode: UrlMode = UrlMode.https
+    provider: str = "github"
 
 
 state = State()
@@ -68,10 +78,17 @@ def main(
         "--url-mode",
         help="URL format to use for cloning: https or git (SSH).",
     ),
+    provider: str = typer.Option(
+        "github",
+        "--provider",
+        "-p",
+        help="Hosting provider (github, bitbucket).",
+    ),
 ) -> None:
     if root is not None:
         state.root = root.expanduser()
     state.url_mode = url_mode
+    state.provider = provider
 
 
 # ---------------------------------------------------------------------------
@@ -86,11 +103,13 @@ class RemoteRepo:
         https_url: str,
         ssh_url: str,
         default_branch: str = "main",
+        is_archived: bool = False,
     ):
         self.name = name
         self.https_url = https_url
         self.ssh_url = ssh_url
         self.default_branch = default_branch
+        self.is_archived = is_archived
 
     def clone_url(self) -> str:
         return self.ssh_url if state.url_mode == UrlMode.git else self.https_url
@@ -215,7 +234,7 @@ class GitHubProvider(Provider):
                 "--limit",
                 "1000",
                 "--json",
-                "name,url,sshUrl,defaultBranchRef",
+                "name,url,sshUrl,defaultBranchRef,isArchived",
             ],
             capture_output=True,
             text=True,
@@ -235,6 +254,7 @@ class GitHubProvider(Provider):
                     https_url=item["url"],
                     ssh_url=item["sshUrl"],
                     default_branch=default_branch,
+                    is_archived=item.get("isArchived", False),
                 )
             )
         return repos
@@ -268,16 +288,109 @@ class GitHubProvider(Provider):
         return [r["name"] for r in data.get("refs", [])]
 
 
+class BitbucketServerProvider(Provider):
+    """Bitbucket Server (on-prem) provider — uses REST API v1.0.
+
+    Configuration via environment variables:
+        BITBUCKET_URL     — Base URL of the Bitbucket Server instance
+                            (e.g. https://bitbucket.yourcompany.com)
+        BITBUCKET_TOKEN   — Personal access token for authentication
+        BITBUCKET_PROJECT — Project key to list repos from (e.g. "CBTECH")
+    """
+
+    def __init__(self) -> None:
+        self.base_url = os.environ.get("BITBUCKET_URL", "").rstrip("/")
+        self.token = os.environ.get("BITBUCKET_TOKEN", "")
+        self.project = os.environ.get("BITBUCKET_PROJECT", "")
+
+        missing: list[str] = []
+        if not self.base_url:
+            missing.append("BITBUCKET_URL")
+        if not self.project:
+            missing.append("BITBUCKET_PROJECT")
+        if not self.token:
+            missing.append("BITBUCKET_TOKEN")
+        if missing:
+            console.print(
+                f"[red]Missing required environment variable(s): {', '.join(missing)}[/red]"
+            )
+            raise typer.Exit(code=1)
+
+    def _get(self, path: str, params: dict[str, str | int] | None = None) -> dict:
+        """Make an authenticated GET request to the Bitbucket Server REST API."""
+        url = f"{self.base_url}/rest/api/1.0{path}"
+        headers = {"Authorization": f"Bearer {self.token}"}
+        response = requests.get(url, headers=headers, params=params or {}, timeout=30)
+        if response.status_code != 200:
+            console.print(
+                f"[red]Bitbucket API error ({response.status_code}):[/red] "
+                f"{response.text[:200]}"
+            )
+            raise typer.Exit(code=1)
+        return response.json()
+
+    def _get_paginated(self, path: str) -> list[dict]:
+        """Fetch all pages from a paginated Bitbucket Server endpoint."""
+        results: list[dict] = []
+        start = 0
+        while True:
+            data = self._get(path, {"start": start, "limit": 100})
+            results.extend(data.get("values", []))
+            if data.get("isLastPage", True):
+                break
+            start = data["nextPageStart"]
+        return results
+
+    def list_repos(self) -> list[RemoteRepo]:
+        items = self._get_paginated(f"/projects/{self.project}/repos")
+        repos: list[RemoteRepo] = []
+        for item in items:
+            clone_links = {
+                link["name"]: link["href"]
+                for link in item.get("links", {}).get("clone", [])
+            }
+            # Default branch requires a separate call on some Bitbucket versions;
+            # fall back to the top-level metadata if present.
+            default_branch_info = item.get("defaultBranch")
+            if isinstance(default_branch_info, dict):
+                default_branch = default_branch_info.get("displayId", "master")
+            elif isinstance(default_branch_info, str):
+                default_branch = default_branch_info
+            else:
+                default_branch = "master"
+
+            repos.append(
+                RemoteRepo(
+                    name=item["slug"],
+                    https_url=clone_links.get("http", ""),
+                    ssh_url=clone_links.get("ssh", ""),
+                    default_branch=default_branch,
+                    is_archived=item.get("archived", False),
+                )
+            )
+        return repos
+
+    def list_branches(self, repo: RemoteRepo) -> list[str]:
+        items = self._get_paginated(
+            f"/projects/{self.project}/repos/{repo.name}/branches"
+        )
+        return [item["displayId"] for item in items]
+
+
 # ---------------------------------------------------------------------------
 # Provider registry — add new providers here
 # ---------------------------------------------------------------------------
 
 PROVIDERS: dict[str, type[Provider]] = {
     "github": GitHubProvider,
+    "bitbucket": BitbucketServerProvider,
 }
 
-ProviderOpt = typer.Option(
-    "github", "--provider", "-p", help="Hosting provider (github, …)"
+ModeOpt = typer.Option(
+    RepoMode.active,
+    "--mode",
+    "-m",
+    help="Filter repos by status (active, archived, all)",
 )
 
 
@@ -374,19 +487,26 @@ def list_local(
 
 @app.command("list-remote")
 def list_remote(
-    provider: str = ProviderOpt,
+    mode: RepoMode = ModeOpt,
 ) -> None:
     """List all remote repositories for a provider."""
-    prov = get_provider(provider)
+    prov = get_provider(state.provider)
     repos = sorted(prov.list_repos(), key=lambda r: r.name)
 
-    table = Table(title=f"Remote repositories ({provider})")
+    if mode == RepoMode.active:
+        repos = [r for r in repos if not r.is_archived]
+    elif mode == RepoMode.archived:
+        repos = [r for r in repos if r.is_archived]
+
+    table = Table(title=f"Remote repositories ({state.provider})")
     table.add_column("Name", style="bright_cyan", header_style="white")
     table.add_column("Default branch", style="bright_green", header_style="white")
     table.add_column("URL", style="bright_white", header_style="white")
+    table.add_column("Status", style="bright_yellow", header_style="white")
 
     for repo in repos:
-        table.add_row(repo.name, repo.default_branch, repo.clone_url())
+        status = "archived" if repo.is_archived else "active"
+        table.add_row(repo.name, repo.default_branch, repo.clone_url(), status)
 
     console.print(table)
 
@@ -452,26 +572,36 @@ def status(
 
 
 @app.command("branches-remote")
-def branches_remote(
-    provider: str = ProviderOpt,
-) -> None:
+def branches_remote() -> None:
     """List branches for each remote repository."""
-    prov = get_provider(provider)
-    repos = prov.list_repos()
+    prov = get_provider(state.provider)
+    repos = [r for r in prov.list_repos() if not r.is_archived]
 
-    table = Table(title=f"Remote branches ({provider})")
+    table = Table(title=f"Remote branches ({state.provider})")
     table.add_column("Repository", style="bright_cyan", header_style="white")
+    table.add_column(
+        "#Branches", style="bright_white", header_style="white", justify="right"
+    )
     table.add_column("Branches", style="bright_green", header_style="white")
 
     for repo in repos:
         branches = prov.list_branches(repo)
-        table.add_row(repo.name, ", ".join(branches) if branches else "-")
+        table.add_row(
+            repo.name, str(len(branches)), ", ".join(branches) if branches else "-"
+        )
 
     console.print(table)
 
 
 @app.command("branches-local")
-def branches_local() -> None:
+def branches_local(
+    compact: bool = typer.Option(
+        False,
+        "--compact",
+        "-c",
+        help="Show only branches with at least one non-zero value.",
+    ),
+) -> None:
     """List branches for each local repo with unpushed/unpulled commit counts."""
     repos = find_local_repos(state.root)
 
@@ -491,6 +621,8 @@ def branches_local() -> None:
         for branch in branches:
             unpushed = repo.unpushed_commits(branch)
             unpulled = repo.unpulled_commits(branch)
+            if compact and not any([unpushed, unpulled]):
+                continue
             table.add_row(
                 repo.name,
                 branch,
@@ -503,15 +635,14 @@ def branches_local() -> None:
 
 @app.command("sync")
 def sync(
-    provider: str = ProviderOpt,
     dry_run: bool = typer.Option(
         False, "--dry-run", "-n", help="Print what would happen without doing it."
     ),
 ) -> None:
     """Sync local repos with remote: clone missing, pull existing, delete gone."""
-    prov = get_provider(provider)
+    prov = get_provider(state.provider)
 
-    console.print(f"[bold]Fetching remote repo list from {provider}…[/bold]")
+    console.print(f"[bold]Fetching remote repo list from {state.provider}…[/bold]")
     remote_repos = prov.list_repos()
     remote_names = {r.name: r for r in remote_repos}
 
@@ -519,7 +650,11 @@ def sync(
     local_names = {r.name: r for r in local_repos}
 
     to_clone = sorted(
-        [r for name, r in remote_names.items() if name not in local_names],
+        [
+            r
+            for name, r in remote_names.items()
+            if name not in local_names and not r.is_archived
+        ],
         key=lambda r: r.name,
     )
     to_pull = sorted(
