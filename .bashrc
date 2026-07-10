@@ -242,13 +242,16 @@ alias lg="lazygit"
 
 # Define gitt aliases: "alias|command|description"
 _GITT_ALIASES=(
-    "gitt      | git-tool.py --root=~/repos | Multi-repo management tool"
-    "gitt-ll   | gitt list-local            | List local repositories"
-    "gitt-llc  | gitt list-local --compact  | List local repositories (compact)"
-    "gitt-lr   | gitt list-remote           | List remote repositories"
-    "gitt-s    | gitt status                | Show status of all repos"
-    "gitt-sc   | gitt status --compact      | Show status of all repos (compact)"
-    "gitt-sync | gitt sync                  | Sync all repos with remote"
+    "gitt      | git-tool.py --root=~/repos    | Multi-repo management tool"
+    "gitt-bl   | gitt branches-local           | List local branches"
+    "gitt-blc  | gitt branches-local --compact | List local branches (compact)"
+    "gitt-br   | gitt branches-remote          | List remote branches"
+    "gitt-ll   | gitt list-local               | List local repositories"
+    "gitt-llc  | gitt list-local --compact     | List local repositories (compact)"
+    "gitt-lr   | gitt list-remote              | List remote repositories"
+    "gitt-s    | gitt status                   | Show status of all repos"
+    "gitt-sc   | gitt status --compact         | Show status of all repos (compact)"
+    "gitt-sync | gitt sync                     | Sync all repos with remote"
 )
 
 _trim() { local v="$1"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"; printf '%s' "${v}"; }
