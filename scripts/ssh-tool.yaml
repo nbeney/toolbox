@@ -1,0 +1,33 @@
+hosts:
+  host1:
+    hostname: localhost
+    port: 2221
+
+  host2:
+    hostname: localhost
+    port: 2222
+
+  host3:
+    hostname: localhost
+    port: 2223
+
+  host4:
+    hostname: localhost
+    port: 2224
+
+groups:
+  group1:
+    hosts: [host1, host2]
+
+  group2:
+    hosts: [host3]
+    groups: [group1]
+
+  all:
+    hosts: ["*"]
+
+  odd:
+    hosts: ["host[13579]"]
+
+  even:
+    hosts: ["host[2468]"]
