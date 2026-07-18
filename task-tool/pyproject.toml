@@ -1,0 +1,21 @@
+[project]
+name = "task-tool"
+version = "0.1.0"
+description = "TaskWarrior S3 backup & sync CLI with Fernet encryption"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.12.0",
+    "boto3>=1.35.0",
+    "cryptography>=43.0.0",
+]
+
+[project.scripts]
+task-tool = "task_tool.cli:app_entry"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/task_tool"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
