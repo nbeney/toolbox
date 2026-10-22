@@ -224,6 +224,10 @@ alias sys-suspend="sudo systemctl suspend"
 # Alert for long-running commands: sleep 10; alert
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
+alias restic-self-update="sudo restic self-update"
+alias restic-local='restic --repo="${RESTIC_LOCAL_DIR}" --password-file="${HOME}/secrets/restic-password"'
+alias restic-aws='AWS_PROFILE=restic-backup restic --repo="s3:s3.${RESTIC_S3_REGION}.amazonaws.com/${RESTIC_S3_BUCKET}" --password-file="${HOME}/secrets/restic-password"'
+
 #==============================================================================
 # Aliases — git
 #==============================================================================
@@ -355,7 +359,7 @@ function repeat() {
 
 [ -f ~/repos/toolbox/.bashrc.d/ansi.sh ] && . ~/repos/toolbox/.bashrc.d/ansi.sh
 
-[ -f ~/repos/toolbox/.bashrc.d/prompt.sh ] && . ~/repos/toolbox/.bashrc.d/prompt.sh
+###[ -f ~/repos/toolbox/.bashrc.d/prompt.sh ] && . ~/repos/toolbox/.bashrc.d/prompt.sh
 
 [ -f "${HOME}/.deno/env" ] && . "${HOME}/.deno/env"
 
@@ -367,7 +371,7 @@ function repeat() {
 # Secrets
 #==============================================================================
 
-[ -f "${HOME}/.secrets" ] && . "${HOME}/.secrets"
+[ -f "${HOME}/secrets/env" ] && . "${HOME}/secrets/env"
 
 # Kiro CLI post block. Keep at the bottom of this file.
 [[ -f "${HOME}/.local/share/kiro-cli/shell/bashrc.post.bash" ]] && builtin source "${HOME}/.local/share/kiro-cli/shell/bashrc.post.bash"
