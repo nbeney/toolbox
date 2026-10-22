@@ -125,6 +125,14 @@ fi
 # Aliases — navigation
 #==============================================================================
 
+alias cd-shared="cd ~/shared"
+
+alias cd-banking="cd ~/shared/Banking"
+for _dir in ~/shared/Banking/*/; do
+    _name=$(basename "${_dir}")
+    alias "cd-${_name}=cd ${_dir}"
+done
+
 alias cd-repos="cd ~/repos"
 for _dir in ~/repos/*/; do
     _name=$(basename "${_dir}")
@@ -205,7 +213,7 @@ alias ps='ps auxf'
 alias cls=clear
 alias cal="ncal -M -b"
 alias xemacs='emacs -nw'
-alias config="xemacs ~/.bashrc && . ~/.bashrc"
+alias edit-bash="xemacs ~/.bashrc && . ~/.bashrc"
 
 alias sa="sudo apt"
 alias sag="sudo apt-get"
@@ -301,6 +309,7 @@ alias ruff="uvx ruff"
 alias streamlit="uvx streamlit"
 alias textract="uvx textract"
 alias thonny="uvx thonny"
+alias dl="CUDA_VISIBLE_DEVICES='' uvx docling convert"
 
 #==============================================================================
 # Aliases — todo
@@ -358,7 +367,7 @@ function repeat() {
 # Secrets
 #==============================================================================
 
-. .secrets
+[ -f "${HOME}/.secrets" ] && . "${HOME}/.secrets"
 
 # Kiro CLI post block. Keep at the bottom of this file.
 [[ -f "${HOME}/.local/share/kiro-cli/shell/bashrc.post.bash" ]] && builtin source "${HOME}/.local/share/kiro-cli/shell/bashrc.post.bash"
