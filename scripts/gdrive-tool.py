@@ -23,11 +23,19 @@ Commands:
 
 Authentication
 --------------
-This tool uses Application Default Credentials (ADC) via gcloud. Run this
-once to grant the Drive scope (the default ADC login does NOT include Drive):
+This tool uses Application Default Credentials (ADC) via gcloud.
+
+Google blocks the Drive scope for gcloud's built-in OAuth client, so you must
+log in with your own OAuth client (a "Desktop app" client created in the Cloud
+console and downloaded to ~/secrets/gdrive-tool-key.json). Run this once:
 
     gcloud auth application-default login \\
+        --client-id-file=$HOME/secrets/gdrive-tool-key.json \\
         --scopes=https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/cloud-platform
+
+If Drive calls later fail with a quota/consumer error, pin the quota project:
+
+    gcloud auth application-default set-quota-project restic-eb4d68a6
 
 The Google Drive API must also be enabled for the project:
 
@@ -99,6 +107,38 @@ class OrderBy(str, Enum):
     size = "quotaBytesUsed desc"
 
 
+class FileType(str, Enum):
+    """Named file categories mapped to Drive mimeType query fragments."""
+
+    image = "image"
+    video = "video"
+    audio = "audio"
+    text = "text"
+    application = "application"
+    pdf = "pdf"
+    folder = "folder"
+    document = "document"
+    spreadsheet = "spreadsheet"
+    presentation = "presentation"
+    drawing = "drawing"
+
+
+# Map each FileType to a Drive query clause.
+TYPE_QUERY: dict[FileType, str] = {
+    FileType.image: "mimeType contains 'image/'",
+    FileType.video: "mimeType contains 'video/'",
+    FileType.audio: "mimeType contains 'audio/'",
+    FileType.text: "mimeType contains 'text/'",
+    FileType.application: "mimeType contains 'application/'",
+    FileType.pdf: "mimeType = 'application/pdf'",
+    FileType.folder: f"mimeType = '{FOLDER_MIME}'",
+    FileType.document: "mimeType = 'application/vnd.google-apps.document'",
+    FileType.spreadsheet: "mimeType = 'application/vnd.google-apps.spreadsheet'",
+    FileType.presentation: "mimeType = 'application/vnd.google-apps.presentation'",
+    FileType.drawing: "mimeType = 'application/vnd.google-apps.drawing'",
+}
+
+
 # ---------------------------------------------------------------------------
 # Global state
 # ---------------------------------------------------------------------------
@@ -153,10 +193,14 @@ def get_service():
 def _auth_help() -> None:
     console.print(
         "\n[yellow]Google Drive credentials are not set up.[/yellow]\n"
-        "Run this once to grant the Drive scope:\n\n"
+        "Google blocks the Drive scope for gcloud's built-in OAuth client, so you\n"
+        "must log in with your own OAuth client. Run this once:\n\n"
         "  [cyan]gcloud auth application-default login \\\n"
+        "      --client-id-file=$HOME/secrets/gdrive-tool-key.json \\\n"
         "      --scopes=https://www.googleapis.com/auth/drive,"
         "https://www.googleapis.com/auth/cloud-platform[/cyan]\n\n"
+        "If Drive calls later fail with a quota/consumer error, pin the quota project:\n\n"
+        f"  [cyan]gcloud auth application-default set-quota-project {state.project}[/cyan]\n\n"
         "And make sure the Drive API is enabled:\n\n"
         f"  [cyan]gcloud services enable drive.googleapis.com "
         f"--project={state.project}[/cyan]\n"
@@ -271,6 +315,14 @@ def list_files(
         Optional[str],
         typer.Option("--folder", "-f", help="Parent folder id to list within."),
     ] = None,
+    types: Annotated[
+        Optional[list[FileType]],
+        typer.Option(
+            "--type",
+            "-t",
+            help="Filter by file category (repeatable; multiple are OR'd).",
+        ),
+    ] = None,
     order: Annotated[
         OrderBy,
         typer.Option("--order", "-o", help="Sort order."),
@@ -295,6 +347,10 @@ def list_files(
         if folder:
             safe = folder.replace("'", "\\'")
             clauses.append(f"'{safe}' in parents")
+        if types:
+            # OR the selected categories together, AND'd with the other clauses.
+            type_clause = " or ".join(TYPE_QUERY[t] for t in dict.fromkeys(types))
+            clauses.append(f"({type_clause})")
     q = " and ".join(clauses)
 
     files: list[dict] = []
