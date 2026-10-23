@@ -228,6 +228,7 @@ alias restic-self-update="sudo restic self-update"
 alias restic-local='restic --repo="${RESTIC_LOCAL_DIR}" --password-file="${HOME}/secrets/restic-password"'
 alias restic-aws='AWS_PROFILE=restic-backup restic --repo="s3:s3.${RESTIC_S3_REGION}.amazonaws.com/${RESTIC_S3_BUCKET}" --password-file="${HOME}/secrets/restic-password"'
 alias restic-gcs='GOOGLE_PROJECT_ID="${RESTIC_GCS_PROJECT_ID}" GOOGLE_APPLICATION_CREDENTIALS="${HOME}/secrets/restic-gcs-key.json" restic --repo="gs:${RESTIC_GCS_BUCKET}:/" --password-file="${HOME}/secrets/restic-password"'
+alias restic-qnap='restic --repo="sftp:qnap:${RESTIC_QNAP_DIR}" --password-file="${HOME}/secrets/restic-password"'
 
 #==============================================================================
 # Aliases — git
