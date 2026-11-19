@@ -734,7 +734,10 @@ def sync(
                 console.print(f"  [dim]Would delete[/dim] {local.path}")
             else:
                 confirmed = Confirm.ask(
-                    f"  Delete [cyan]{local.name}[/cyan] ({local.path})?"
+                    f"  Delete [cyan]{local.name}[/cyan] ({local.path})? \\[y/N]",
+                    default=False,
+                    show_choices=False,
+                    show_default=False,
                 )
                 if confirmed:
                     import shutil
